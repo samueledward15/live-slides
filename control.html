@@ -22,6 +22,7 @@
     <a class="btn small" id="openScreen" target="_blank">افتح الشاشة</a>
   </div>
   <div class="err" id="err"></div>
+  <div class="modp" id="modp" hidden></div>
   <div class="list" id="list"></div>
 </div>
 <script>
@@ -35,10 +36,35 @@ function render() {
   $("n").textContent = `شريحة ${LS.ar(cur + 1)} من ${LS.ar(deck.slides.length)} · ${s.type}`;
   $("t").textContent = label(s);
   $("notes").textContent = s.notes || "";
-  $("reset").hidden = s.type !== "poll";
+  $("reset").hidden = !["poll", "cloud", "tap", "scale", "qa"].includes(s.type);
+  $("reset").textContent = s.type === "qa" ? "امسح كل الأسئلة" : "صفّر نتايج الشريحة دي";
+  modPanel();
   $("list").innerHTML = deck.slides.map((x, i) => `<button class="${i === cur ? "cur" : ""}" data-i="${i}">${LS.ar(i + 1)}. ${LS.esc(label(x))}</button>`).join("");
   $("list").querySelectorAll("button").forEach((b) => b.onclick = () => go(+b.dataset.i));
 }
+// ---- moderation panel: hide words / questions, mark answered, reveal tap answer
+async function modPanel() {
+  const s = deck.slides[cur], el = $("modp");
+  if (!["cloud", "qa", "tap"].includes(s.type)) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const mod = await LS.getMod(s.id); const has = (item, kind) => mod.some((m) => m.item === item && m.kind === kind);
+  let rows = [];
+  if (s.type === "tap") {
+    rows = s.answer ? [`<button class="btn small mbtn ${has("reveal", "answered") ? "on" : ""}" data-i="reveal" data-k="answered">${has("reveal", "answered") ? "اخفي الإجابة" : "اكشف الإجابة"}</button>`] : [];
+  } else if (s.type === "cloud") {
+    const m = new Map(); (await LS.getResponses(s.id)).forEach((v) => (v.words || []).forEach((w) => { const k = LS.norm(w); if (k) m.set(k, (m.get(k) || { w, n: 0 })), m.get(k).n++; }));
+    rows = [...m.entries()].sort((a, b) => b[1].n - a[1].n).map(([k, x]) =>
+      `<div class="mrow"><span>${LS.esc(x.w)} · ${LS.ar(x.n)}</span><button class="btn small mbtn ${has(k, "hide") ? "on" : ""}" data-i="${LS.esc(k)}" data-k="hide">${has(k, "hide") ? "إظهار" : "إخفاء"}</button></div>`);
+  } else {
+    const r = await LS.getResponsesLike(s.id);
+    rows = r.filter((x) => x.slide_id.startsWith(s.id + ":q:")).map((x) => ({ id: x.slide_id.split(":q:")[1], t: x.value.text })).map((q) =>
+      `<div class="mrow"><span>${LS.esc(q.t)}</span><button class="btn small mbtn ${has(q.id, "answered") ? "on" : ""}" data-i="${q.id}" data-k="answered">${has(q.id, "answered") ? "رجّعه" : "اتجاوب"}</button>
+       <button class="btn small mbtn ${has(q.id, "hide") ? "on" : ""}" data-i="${q.id}" data-k="hide">${has(q.id, "hide") ? "إظهار" : "إخفاء"}</button></div>`);
+  }
+  el.innerHTML = `<div class="n">${s.type === "tap" ? "الإجابة" : s.type === "cloud" ? "الكلمات" : "الأسئلة"}</div>${rows.join("") || `<div class="notes">لسه مفيش حاجة.</div>`}`;
+  el.querySelectorAll(".mbtn").forEach((b) => b.onclick = async () => { await LS.moderate(s.id, b.dataset.i, b.dataset.k, !b.classList.contains("on")); modPanel(); });
+}
+
 async function go(i) {
   if (i < 0 || i >= deck.slides.length) return;
   const { error } = await LS.setSlide(i);
@@ -52,10 +78,11 @@ async function go(i) {
   $("deckTitle").textContent = deck.title;
   $("openScreen").href = `/screen?s=${encodeURIComponent(LS.session)}&k=${encodeURIComponent(LS.key)}`;
   cur = await LS.getState(); render();
-  LS.subscribe({ onSlide: (i) => { cur = i; render(); } });
+  LS.subscribe({ onSlide: (i) => { cur = i; render(); },
+    onResponse: (id) => { const s = deck.slides[cur]; if (s && id && (id === s.id || id.startsWith(s.id + ":"))) modPanel(); } });
   $("next").onclick = () => go(cur + 1);
   $("prev").onclick = () => go(cur - 1);
-  $("reset").onclick = async () => { if (confirm("تمسح كل أصوات الشريحة دي؟")) await LS.resetSlide(deck.slides[cur].id); };
+  $("reset").onclick = async () => { if (confirm("تمسح كل ردود الشريحة دي؟")) await LS.resetSlide(deck.slides[cur].id); };
 })();
 </script>
 </body>

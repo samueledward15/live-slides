@@ -56,14 +56,30 @@ const LS = (() => {
     if (error) throw error;
     return data.map((r) => r.value);
   };
+  // All rows under "<prefix>:" (Q&A questions "<id>:q:<qid>" and votes "<id>:v:<qid>")
+  const getResponsesLike = async (prefix) => {
+    const { data, error } = await db.from("responses").select("slide_id,value,created_at").eq("session_id", session).like("slide_id", prefix + ":%");
+    if (error) throw error;
+    return data;
+  };
+
+  // ---- presenter moderation flags: kind "hide" (word / question) or "answered" (question)
+  const getMod = async (slideId) => {
+    const { data, error } = await db.from("mod").select("item,kind").eq("session_id", session).eq("slide_id", slideId);
+    if (error) throw error;
+    return data;
+  };
+  const moderate = (slideId, item, kind, on) => db.rpc("moderate", { p_session: session, p_key: key, p_slide_id: slideId, p_item: item, p_kind: kind, p_on: on });
 
   // ---- realtime: onSlide(i), onResponse(slideId)
-  const subscribe = ({ onSlide, onResponse }) => {
+  const subscribe = ({ onSlide, onResponse, onMod }) => {
     db.channel(`ls-${session}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sessions", filter: `id=eq.${session}` },
         (p) => onSlide && onSlide(p.new.current_slide))
       .on("postgres_changes", { event: "*", schema: "public", table: "responses", filter: `session_id=eq.${session}` },
         (p) => onResponse && onResponse((p.new && p.new.slide_id) || (p.old && p.old.slide_id)))
+      .on("postgres_changes", { event: "*", schema: "public", table: "mod", filter: `session_id=eq.${session}` },
+        (p) => { const id = (p.new && p.new.slide_id) || (p.old && p.old.slide_id); (onMod || onResponse) && (onMod || onResponse)(id); })
       .subscribe();
   };
 
@@ -77,6 +93,12 @@ const LS = (() => {
     return c;
   };
 
+  // random short id (Q&A question ids)
+  const rid = () => crypto.getRandomValues(new Uint8Array(6)).reduce((a, b) => a + b.toString(16).padStart(2, "0"), "");
+  // normalise a typed word for the cloud: trim, collapse spaces, strip tatweel/diacritics, unify alef/yaa/taa marbuta
+  const norm = (w) => String(w || "").trim().replace(/\s+/g, " ").replace(/[\u0640\u064B-\u0652]/g, "")
+    .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة$/g, "ه").slice(0, 30);
+
   return { db, session, key, participant, registerDeck, getDeck, loadDeck, getState, setSlide, resetSlide,
-           submit, getResponses, subscribe, ar, esc, joinUrl, tally };
+           submit, getResponses, getResponsesLike, getMod, moderate, subscribe, ar, esc, joinUrl, tally, rid, norm };
 })();

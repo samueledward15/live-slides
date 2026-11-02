@@ -40,6 +40,72 @@ const W = {
       ${(s.points || []).length ? `<ol class="pts">${s.points.map((p, i) => `<li><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : ""}
       ${s.phoneText ? `<div class="p-sub">${s.phoneText}</div>` : ""}`;
   },
+  // ===== Phase 2 =====
+  cloud: (s) => {
+    const max = s.max || 3, mineW = (mine[s.id] || []).slice();
+    const draw = () => {
+      root.innerHTML = `<div class="p-title">${s.question}</div><div class="p-sub">${s.hint || `اكتب لحد ${LS.ar(max)} كلمات، كل كلمة لوحدها.`}</div>
+        <form class="cl-form" id="f"><input id="w" maxlength="30" placeholder="كلمة واحدة" autocomplete="off" ${mineW.length >= max ? "disabled" : ""}><button class="opt send" ${mineW.length >= max ? "disabled" : ""}>ابعت</button></form>
+        <div class="chips">${mineW.map((w, i) => `<span class="chip">${LS.esc(w)}<button data-i="${i}" aria-label="امسح">×</button></span>`).join("")}</div>
+        <div class="ok" id="ok"></div>`;
+      const save = async () => { const { error } = await LS.submit(s.id, { words: mineW });
+        document.getElementById("ok").textContent = error ? "حصلت مشكلة، جرّب تاني" : "✓ وصلت"; if (!error) { mine[s.id] = mineW; saveMine(); } };
+      document.getElementById("f").onsubmit = async (e) => { e.preventDefault(); const v = document.getElementById("w").value.trim().split(/\s+/)[0];
+        if (!v || mineW.length >= max) return; mineW.push(v); draw(); await save(); };
+      root.querySelectorAll(".chip button").forEach((b) => b.onclick = async () => { mineW.splice(+b.dataset.i, 1); draw(); await save(); });
+    };
+    draw();
+  },
+  tap: (s) => {
+    root.innerHTML = `<div class="p-title">${s.question}</div><div class="p-sub">${s.phoneHint || "دوس على المكان في الصورة، وتقدر تغيّره."}</div>
+      <div class="tap-phone" id="tp"><img src="${s.image}" alt="">${mine[s.id] ? `<i style="left:${mine[s.id].x}%;top:${mine[s.id].y}%"></i>` : ""}</div><div class="ok" id="ok"></div>`;
+    const box = document.getElementById("tp");
+    box.onclick = async (e) => {
+      const r = box.getBoundingClientRect(), v = { x: Math.round((e.clientX - r.left) / r.width * 1000) / 10, y: Math.round((e.clientY - r.top) / r.height * 1000) / 10 };
+      box.querySelector("i")?.remove(); box.insertAdjacentHTML("beforeend", `<i style="left:${v.x}%;top:${v.y}%"></i>`);
+      const { error } = await LS.submit(s.id, v);
+      document.getElementById("ok").textContent = error ? "حصلت مشكلة، جرّب تاني" : "✓ نقطتك اتسجلت";
+      if (!error) { mine[s.id] = v; saveMine(); }
+    };
+  },
+  scale: (s) => {
+    const n = s.steps || 5, L = s.labels || ["لا أوافق", "أوافق تمامًا"];
+    root.innerHTML = `<div class="p-title">${s.question}</div>
+      <div class="scale-btns">${Array.from({ length: n }, (_, i) => `<button class="opt sc ${mine[s.id] === i + 1 ? "sel" : ""}" data-v="${i + 1}">${LS.ar(i + 1)}</button>`).join("")}</div>
+      <div class="sl-p"><span>${L[0]}</span><span>${L[1]}</span></div><div class="ok" id="ok">${mine[s.id] ? "✓ رأيك اتسجل، وتقدر تغيّره" : ""}</div>`;
+    root.querySelectorAll(".sc").forEach((b) => b.onclick = async () => {
+      const v = +b.dataset.v; root.querySelectorAll(".sc").forEach((x) => x.classList.toggle("sel", x === b));
+      const { error } = await LS.submit(s.id, { v });
+      document.getElementById("ok").textContent = error ? "حصلت مشكلة، جرّب تاني" : "✓ رأيك اتسجل، وتقدر تغيّره";
+      if (!error) { mine[s.id] = v; saveMine(); }
+    });
+  },
+  qa: (s) => {
+    const myVotes = mine[s.id + ":votes"] || {};
+    root.innerHTML = `<div class="p-title">${s.phoneTitle || "اسأل المحاضر"}</div>
+      <form class="qa-form" id="f"><textarea id="q" maxlength="200" rows="3" placeholder="اكتب سؤالك هنا…"></textarea><button class="opt send">ابعت السؤال</button></form>
+      <div class="ok" id="ok"></div><div class="p-sub" style="margin-top:18px">اعمل لايك على الأسئلة اللي عايز إجابتها:</div><div class="qa-list" id="ql"></div>`;
+    const list = async () => {
+      const [rows, mod] = await Promise.all([LS.getResponsesLike(s.id), LS.getMod(s.id)]);
+      const hide = new Set(mod.filter((m) => m.kind === "hide").map((m) => m.item)), done = new Set(mod.filter((m) => m.kind === "answered").map((m) => m.item));
+      const votes = {}; rows.filter((r) => r.slide_id.startsWith(s.id + ":v:") && r.value.up).forEach((r) => { const q = r.slide_id.split(":v:")[1]; votes[q] = (votes[q] || 0) + 1; });
+      const qs = rows.filter((r) => r.slide_id.startsWith(s.id + ":q:")).map((r) => ({ id: r.slide_id.split(":q:")[1], text: r.value.text }))
+        .filter((q) => q.text && !hide.has(q.id)).map((q) => ({ ...q, v: votes[q.id] || 0, done: done.has(q.id) })).sort((a, b) => a.done - b.done || b.v - a.v);
+      const el = document.getElementById("ql"); if (!el) return;
+      el.innerHTML = qs.map((q) => `<div class="qa-item${q.done ? " done" : ""}"><span>${LS.esc(q.text)}</span>
+        <button class="vote ${myVotes[q.id] ? "sel" : ""}" data-q="${q.id}" ${q.done ? "disabled" : ""}>▲ ${LS.ar(q.v)}</button></div>`).join("") || `<div class="p-sub">لسه مفيش أسئلة.</div>`;
+      el.querySelectorAll(".vote").forEach((b) => b.onclick = async () => {
+        const q = b.dataset.q, up = myVotes[q] ? 0 : 1;
+        const { error } = await LS.submit(`${s.id}:v:${q}`, { up });
+        if (!error) { myVotes[q] = up; mine[s.id + ":votes"] = myVotes; saveMine(); list(); }
+      });
+    };
+    document.getElementById("f").onsubmit = async (e) => { e.preventDefault(); const t = document.getElementById("q").value.trim(); if (t.length < 3) return;
+      const { error } = await LS.submit(`${s.id}:q:${LS.rid()}`, { text: t });
+      document.getElementById("ok").textContent = error ? "حصلت مشكلة، جرّب تاني" : "✓ سؤالك وصل";
+      if (!error) { document.getElementById("q").value = ""; list(); } };
+    list(); W._live = () => list();
+  },
   _passive: (s) => {
     root.innerHTML = `<div class="p-title">${s.phoneTitle || s.title || s.question || ""}</div>
       <div class="p-sub">${s.phoneText || "تابع الشاشة… أول ما يجي سؤال هيظهرلك هنا."}</div>
@@ -52,8 +118,8 @@ function show(i) {
   if (!deck || i === cur || i < 0 || i >= deck.slides.length) return;
   cur = i; const s = deck.slides[i];
   document.getElementById("pos").textContent = `${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}`;
-  (W[s.type] || W._passive)(s);
-  if (navigator.vibrate && s.type === "poll") navigator.vibrate(30);
+  W._live = null; (W[s.type] && !s.type.startsWith("_") ? W[s.type] : W._passive)(s);
+  if (navigator.vibrate && ["poll", "cloud", "tap", "scale", "qa"].includes(s.type)) navigator.vibrate(30);
 }
 
 (async () => {
@@ -62,7 +128,7 @@ function show(i) {
     document.getElementById("deckTitle").textContent = deck.title;
     if (deck.logoSmall || deck.logo) document.querySelector(".brand").insertAdjacentHTML("afterbegin", `<img src="${deck.logoSmall || deck.logo}" alt="">`);
     show(await LS.getState());
-    LS.subscribe({ onSlide: show });
+    LS.subscribe({ onSlide: show, onResponse: (id) => { const s = deck.slides[cur]; if (s && s.type === "qa" && id && (id === s.id || id.startsWith(s.id + ":")) && W._live) W._live(); } });
   } catch (e) { root.innerHTML = `<div class="err">العرض ده مش موجود أو الرابط ناقص.</div>`; }
 })();
 </script>

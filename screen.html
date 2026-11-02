@@ -91,15 +91,107 @@ const R = {
         ${pts.map((p, i) => p.x == null ? "" : `<span class="hot" style="left:${p.x}%;top:${p.y}%;--i:${i}">${LS.ar(i + 1)}</span>`).join("")}</div>
         ${s.caption ? `<figcaption class="cap">${LS.esc(s.caption)}</figcaption>` : ""}</figure></div>`;
   },
+  // ===== Phase 2 =====
+  // Word cloud: each phone sends up to s.max words; size grows with count
+  cloud: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "شارك بكلمة" })}<div class="q">${s.question}</div>
+                 <div class="cloud" id="cloud"></div><div class="total" id="tot"></div>`,
+  // Tap on image: every phone drops one point; presenter can reveal the answer ring
+  tap: (s) => `<div class="miniqr" id="miniqr"></div><div class="lay-tap"><div>${K(s.kicker ? s : { kicker: "دوس على الصورة" })}<div class="q">${s.question}</div>
+                 ${s.hint ? `<div class="body">${s.hint}</div>` : ""}<div class="total" id="tot"></div><div class="reveal" id="reveal"></div></div>
+                 <div class="tap-img" id="tapimg"><img src="${s.image}" alt="${LS.esc(s.alt || "")}"><div id="dots"></div>
+                 ${s.answer ? `<span class="ring" id="ring" style="left:${s.answer.x}%;top:${s.answer.y}%;width:${(s.answer.r || 8) * 2}%"></span>` : ""}</div></div>`,
+  // Agreement scale 1..n: distribution bars + average
+  scale: (s) => { const n = s.steps || 5, L = s.labels || ["لا أوافق", "أوافق تمامًا"];
+    return `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "رأيك" })}<div class="q">${s.question}</div>
+      <div class="lay-scale"><div class="avg"><b id="avg">–</b><span>المتوسط من ${LS.ar(n)}</span></div>
+      <div class="sbars">${Array.from({ length: n }, (_, i) => `<div class="sb"><div class="sbt"><div class="sbf" id="s${i}"></div></div><b id="sn${i}">٠</b><span>${LS.ar(i + 1)}</span></div>`).join("")}</div></div>
+      <div class="sl"><span>${LS.ar(1)} = ${L[0]}</span><span>${LS.ar(n)} = ${L[1]}</span></div><div class="total" id="tot"></div>`; },
+  // Before / after: two poll slides side by side (s.from = [idBefore, idAfter])
+  compare: (s) => { const src = deck.slides.find((x) => x.id === s.from[0]) || { options: [] }, lb = s.labels || ["قبل", "بعد"];
+    return `${K(s.kicker ? s : { kicker: "قبل وبعد" })}<div class="q">${s.title || src.question}</div>
+      <div class="cmp-key"><span class="k0">${lb[0]}</span><span class="k1">${lb[1]}</span></div>
+      <div class="cmp">${src.options.map((o, i) => `<div class="cr"><div class="co">${LS.esc(o)}</div>
+        <div class="cb"><div class="ct"><div class="cf c0" id="c0-${i}"></div></div><b id="cn0-${i}">٠٪</b></div>
+        <div class="cb"><div class="ct"><div class="cf c1" id="c1-${i}"></div></div><b id="cn1-${i}">٠٪</b></div></div>`).join("")}</div>
+      <div class="total" id="tot"></div>`; },
+  // Quote: big quotation with its source
+  quote: (s) => `<div class="lay-quote">${K(s)}<blockquote>${s.quote}</blockquote><div class="rule c"></div><div class="cite">${s.cite || ""}</div></div>`,
+  // Q&A: audience questions sorted by votes; answered ones drop to the bottom
+  qa: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "أسئلتكم" })}<div class="q">${s.title || "اسأل من موبايلك"}</div>
+              <div class="qa" id="qa"></div><div class="total" id="tot"></div>`,
   poll: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "تصويت" })}<div class="q">${s.question}</div>
                 <div class="bars">${s.options.map((o, i) => `<div class="bar"><div>${LS.esc(o)}</div><div class="track"><div class="fill" id="f${i}"></div></div><div class="num" id="n${i}">٠</div></div>`).join("")}</div>
                 <div class="total" id="tot"></div>`,
 };
 
+const mini = (label) => { const m = document.getElementById("miniqr"); if (!m) return; qr(m, 120); m.insertAdjacentHTML("beforeend", `<span>${label}</span>`); };
 const after = {
   join: () => qr(document.getElementById("bigqr"), 380),
+  cloud: (s) => { mini("اكتب"); refresh(s); },
+  tap: (s) => { mini("دوس"); refresh(s); },
+  scale: (s) => { mini("قيّم"); refresh(s); },
+  compare: (s) => refresh(s),
+  qa: (s) => { mini("اسأل"); refresh(s); },
   poll: (s) => { qr(document.getElementById("miniqr"), 120); document.getElementById("miniqr").insertAdjacentHTML("beforeend", "<span>صوّت</span>"); refreshPoll(s); },
 };
+
+// ---- live refresh for phase-2 slides
+const hiddenSet = (mod) => new Set(mod.filter((m) => m.kind === "hide").map((m) => m.item));
+const PALETTE = ["var(--wine)", "var(--crimson)", "var(--gold-deep)", "var(--teal)", "var(--terra)"];
+const R2 = {
+  cloud: async (s) => {
+    const [vals, mod] = await Promise.all([LS.getResponses(s.id), LS.getMod(s.id)]); const hide = hiddenSet(mod);
+    const m = new Map(); vals.forEach((v) => (v.words || []).forEach((w) => { const k = LS.norm(w); if (!k || hide.has(k)) return;
+      const e = m.get(k) || { w: String(w).trim(), n: 0 }; e.n++; m.set(k, e); }));
+    const list = [...m.values()].sort((a, b) => b.n - a.n).slice(0, 40), max = Math.max(1, ...list.map((x) => x.n));
+    // biggest word in the middle: alternate placement around the centre
+    const order = []; list.forEach((x, i) => (i % 2 ? order.push(x) : order.unshift(x)));
+    const el = document.getElementById("cloud"); if (!el) return;
+    el.innerHTML = order.map((x, i) => `<span style="font-size:${30 + 70 * Math.sqrt(x.n / max)}px;color:${PALETTE[(list.indexOf(x)) % PALETTE.length]}">${LS.esc(x.w)}</span>`).join("")
+      || `<span class="empty">مستنيين أول كلمة…</span>`;
+    document.getElementById("tot").textContent = `عدد المشاركين: ${LS.ar(vals.length)}`;
+  },
+  tap: async (s) => {
+    const [vals, mod] = await Promise.all([LS.getResponses(s.id), LS.getMod(s.id)]);
+    const d = document.getElementById("dots"); if (!d) return;
+    d.innerHTML = vals.filter((v) => typeof v.x === "number").map((v) => `<i style="left:${v.x}%;top:${v.y}%"></i>`).join("");
+    document.getElementById("tot").textContent = `عدد النقط: ${LS.ar(vals.length)}`;
+    const shown = mod.some((m) => m.kind === "answered" && m.item === "reveal");
+    const ring = document.getElementById("ring"); if (ring) ring.classList.toggle("on", shown);
+    if (s.answer) { const inside = vals.filter((v) => Math.hypot(v.x - s.answer.x, (v.y - s.answer.y)) <= (s.answer.r || 8)).length;
+      document.getElementById("reveal").innerHTML = shown ? `${s.answerText ? `<div class="body">${s.answerText}</div>` : ""}<b>${LS.ar(inside)}</b> من ${LS.ar(vals.length)} داسوا صح` : ""; }
+  },
+  scale: async (s) => {
+    const n = s.steps || 5, vals = (await LS.getResponses(s.id)).map((v) => v.v).filter((v) => v >= 1 && v <= n);
+    const c = Array(n).fill(0); vals.forEach((v) => c[v - 1]++); const max = Math.max(1, ...c);
+    c.forEach((v, i) => { const f = document.getElementById("s" + i); if (f) f.style.height = (v / max * 100) + "%"; const b = document.getElementById("sn" + i); if (b) b.textContent = LS.ar(v); });
+    const a = vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : 0;
+    document.getElementById("avg").textContent = vals.length ? LS.ar(a.toFixed(1)).replace(".", "٫") : "–";
+    document.getElementById("tot").textContent = `عدد المشاركين: ${LS.ar(vals.length)}`;
+  },
+  compare: async (s) => {
+    const src = deck.slides.find((x) => x.id === s.from[0]); if (!src) return; const k = src.options.length;
+    const sets = await Promise.all(s.from.map((id) => LS.getResponses(id)));
+    sets.forEach((vals, j) => { const c = LS.tally(vals, k), t = Math.max(1, c.reduce((a, b) => a + b, 0));
+      c.forEach((v, i) => { const p = Math.round(v / t * 100); const f = document.getElementById(`c${j}-${i}`); if (f) f.style.width = p + "%";
+        const b = document.getElementById(`cn${j}-${i}`); if (b) b.textContent = LS.ar(p) + "٪"; }); });
+    document.getElementById("tot").textContent = `المشاركين: ${LS.ar(sets[0].length)} قبل · ${LS.ar(sets[1].length)} بعد`;
+  },
+  qa: async (s) => {
+    const [rows, mod] = await Promise.all([LS.getResponsesLike(s.id), LS.getMod(s.id)]); const hide = hiddenSet(mod);
+    const done = new Set(mod.filter((m) => m.kind === "answered").map((m) => m.item));
+    const votes = {}; rows.filter((r) => r.slide_id.startsWith(s.id + ":v:") && r.value.up).forEach((r) => { const q = r.slide_id.split(":v:")[1]; votes[q] = (votes[q] || 0) + 1; });
+    const qs = rows.filter((r) => r.slide_id.startsWith(s.id + ":q:")).map((r) => ({ id: r.slide_id.split(":q:")[1], text: r.value.text, t: r.created_at }))
+      .filter((q) => q.text && !hide.has(q.id))
+      .map((q) => ({ ...q, v: votes[q.id] || 0, done: done.has(q.id) }))
+      .sort((a, b) => a.done - b.done || b.v - a.v || (a.t < b.t ? -1 : 1));
+    const el = document.getElementById("qa"); if (!el) return;
+    el.innerHTML = qs.slice(0, 6).map((q) => `<div class="qq${q.done ? " done" : ""}"><b>${LS.ar(q.v)}</b><span>${LS.esc(q.text)}</span></div>`).join("")
+      || `<div class="empty">مستنيين أول سؤال…</div>`;
+    document.getElementById("tot").textContent = `عدد الأسئلة: ${LS.ar(qs.length)}`;
+  },
+};
+const refresh = (s) => R2[s.type] && R2[s.type](s).catch(() => {});
 
 async function refreshPoll(s) {
   const c = LS.tally(await LS.getResponses(s.id), s.options.length);
@@ -134,7 +226,9 @@ function show(i) {
   show(await LS.getState());
   LS.subscribe({
     onSlide: show,
-    onResponse: (slideId) => { const s = deck.slides[cur]; if (s && s.id === slideId && s.type === "poll") refreshPoll(s); },
+    onResponse: (slideId) => { const s = deck.slides[cur]; if (!s || !slideId) return;
+      if (s.type === "poll" && s.id === slideId) refreshPoll(s);
+      else if (s.type === "compare" ? s.from.includes(slideId) : (slideId === s.id || slideId.startsWith(s.id + ":"))) refresh(s); },
   });
   // Keyboard control only if presenter key is in the URL
   if (LS.key) {
