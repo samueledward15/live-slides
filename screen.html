@@ -25,20 +25,47 @@ addEventListener("resize", fit); fit();
 const qr = (el, size) => { el.innerHTML = ""; new QRCode(el, { text: LS.joinUrl(), width: size, height: size, correctLevel: QRCode.CorrectLevel.M }); };
 
 // ---- slide renderers (one per type)
+// small helpers shared by the layouts
+const K = (s) => s.kicker ? `<div class="kicker">${s.kicker}</div>` : "";
+const B = (s) => s.body ? `<div class="body">${s.body}</div>` : "";
+const UL = (items, cls = "") => items && items.length ? `<ul class="lst ${cls}">${items.map((x) => `<li>${x}</li>`).join("")}</ul>` : "";
+const CITE = (s) => s.cite ? `<div class="cite">${s.cite}</div>` : "";
+const IMG = (src, cls, s = {}, extra = "") => src ? `<img class="ph ${cls}" src="${src}" alt="${LS.esc(s.alt || "")}"${s.pos ? ` style="object-position:${s.pos}${extra}"` : (extra ? ` style="${extra.slice(1)}"` : "")}>` : "";
+const HEAD = (s) => `${K(s)}<div class="title">${s.title}</div>${s.sub ? `<div class="sub">${s.sub}</div>` : ""}<div class="rule"></div>`;
+
 const R = {
+  // Cover: header line, animated logo, title, author, photo rising from the bottom edge
   title: (s) => {
-    const txt = `${s.kicker ? `<div class="kicker">${LS.esc(s.kicker)}</div>` : ""}<div class="title xl">${s.title}</div>
-                 ${s.subtitle ? `<div class="subtitle">${s.subtitle}</div>` : ""}${s.pill ? `<div class="pill">${s.pill}</div>` : ""}`;
-    const art = s.art || (s.logo !== false && deck.logo);
-    return art ? `<div class="t-wrap"><div style="display:flex;flex-direction:column">${txt}</div><div class="halo"><img src="${art}" alt=""></div></div>` : txt;
+    const logo = s.logo !== false && deck.logo ? `<img class="logo" src="${deck.logo}${deck.logo.endsWith(".svg") ? "?t=" + Date.now() : ""}" alt="">` : "";
+    const hd = s.header ? `<div class="hd">${s.header.map((h) => `<span>${h}</span>`).join("")}</div>` : "";
+    return `${hd}<div class="cover">${logo}${K(s)}<div class="title xl">${s.title}</div>${s.subtitle ? `<div class="subtitle">${s.subtitle}</div>` : ""}</div>
+      ${IMG(s.image, "rise", s)}<div class="braid"></div>`;
   },
+  // Section divider: centred title with the Coptic braid as divider
+  section: (s) => `<div class="cover">${K(s)}<div class="title xl">${s.title}</div><div class="braid inline"></div>${s.subtitle ? `<div class="subtitle">${s.subtitle}</div>` : ""}</div>`,
+  // Closing: logo, title, rule
+  end: (s) => `<div class="cover">${deck.logoStatic ? `<img class="logo" src="${deck.logoStatic}" alt="">` : ""}<div class="title xl">${s.title}</div><div class="rule c"></div>
+      ${s.subtitle ? `<div class="subtitle">${s.subtitle}</div>` : ""}</div><div class="braid"></div>`,
+  // Two columns: idea on the right, list + citation on the left
+  text: (s) => `<div class="lay-text"><div>${HEAD(s)}${B(s)}</div><div>${s.listTitle ? `<div class="lt">${s.listTitle}</div>` : ""}${UL(s.list)}${CITE(s)}</div></div>`,
+  // Photo pair: tall piece + detail crop under the text, list and museum label at the side
+  pair: (s) => `<div class="lay-pair">${IMG(s.image, "big", s)}<div class="mid">${HEAD(s)}${B(s)}${IMG(s.detail, "det", { pos: s.detailPos })}</div>
+      <div class="side">${UL(s.list)}${s.credit ? `<div class="credit">${s.credit}</div>` : ""}</div></div>`,
+  // Half-bleed: photo fills the left half, text on the right
+  half: (s) => `${IMG(s.image, "halfimg", s)}<div class="lay-half">${HEAD(s)}${B(s)}${UL(s.list)}${s.credit ? `<div class="credit">${s.credit}</div>` : ""}</div>`,
+  // Band: text and list on top, wide photo bleeding off the bottom
+  band: (s) => `<div class="lay-band"><div>${HEAD(s)}${B(s)}</div><div>${s.listTitle ? `<div class="lt">${s.listTitle}</div>` : ""}${UL(s.list)}</div></div>
+      ${IMG(s.image, "bandimg", s)}${s.credit ? `<div class="credit on-img">${s.credit}</div>` : ""}`,
+  // Photo with a tinted note overlapping its bottom edge
+  note: (s) => `<div class="lay-note"><div>${HEAD(s)}${B(s)}${UL(s.list, s.list && s.list.length > 3 ? "two" : "")}</div>
+      <figure>${IMG(s.image, "noteimg", s)}${s.note ? `<figcaption class="note">${s.note}</figcaption>` : ""}</figure></div>`,
   // Timeline: items [{title, sub, color}] laid on a wavy band
   timeline: (s) => {
     const n = s.items.length, W = 1360, H = 430, ys = [150, 300];
     const pts = s.items.map((_, i) => [W - (i + 0.5) * W / n, ys[i % 2]]);
     let d = `M ${W} ${H / 2}`; pts.forEach(([x, y]) => { d += ` S ${x + W / n / 2} ${y} ${x} ${y}`; }); d += ` S 0 ${H / 2} 0 ${H / 2}`;
-    const cols = ["var(--gold-deep)", "var(--crimson)", "var(--teal)", "var(--terra)", "var(--wine)", "var(--gold)"];
-    return `${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>
+    const cols = ["var(--wine)", "var(--crimson)", "var(--gold-deep)", "var(--teal)", "var(--terra)", "var(--gold)"];
+    return `${K(s)}<div class="title">${s.title}</div>
       <div class="tl"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="var(--ink)" stroke-width="14" stroke-linecap="round"/>
         <path d="${d}" fill="none" stroke="var(--gold)" stroke-width="8" stroke-linecap="round" stroke-dasharray="2 18"/></svg>
       ${s.items.map((it, i) => `<div class="node ${i % 2 ? "" : "up"}" style="right:${(i + 0.5) / n * 100}%;top:${pts[i][1] / H * 100}%">
@@ -46,25 +73,25 @@ const R = {
         <div class="lbl">${it.title}${it.sub ? `<div class="sub">${it.sub}</div>` : ""}</div></div>`).join("")}</div>`;
   },
   content: (s) => s.image
-      ? `<div class="split"><div>${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>
-           ${s.body ? `<div class="body">${s.body}</div>` : ""}</div>
+      ? `<div class="split"><div>${K(s)}<div class="title">${s.title}</div>
+           ${B(s)}</div>
            <div><img src="${s.image}" alt=""><div class="cap">${LS.esc(s.caption || "")}</div></div></div>`
-      : `${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>${s.body ? `<div class="body">${s.body}</div>` : ""}`,
-  join: (s) => `<div class="join"><div><div class="kicker">${s.kicker || "شارك معانا"}</div><div class="title">${s.title}</div>
+      : `${K(s)}<div class="title">${s.title}</div>${B(s)}`,
+  join: (s) => `<div class="join"><div>${K(s.kicker ? s : { kicker: "شارك معانا" })}<div class="title">${s.title}</div><div class="rule"></div>
                  <div class="subtitle">${s.subtitle || "امسح الكود بكاميرا الموبايل"}</div><div class="url">${LS.joinUrl().replace(/^https?:\/\//, "")}</div></div>
                  <div class="qr" id="bigqr"></div></div>`,
-  // Museum object: arched image with numbered look-points + catalogue label
+  // Museum object: photo with numbered look-points + catalogue label
   object: (s) => {
     const M = s.museum || {}, rows = [["المتحف", M.name], ["رقم القيد", M.inv], ["التاريخ", M.date], ["المادة", M.material], ["المصدر", M.place]].filter((r) => r[1]);
     const pts = s.points || [];
-    return `<div class="obj"><div class="obj-text">${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>
-        ${pts.length ? `<ol class="pts">${pts.map((p, i) => `<li style="--i:${i}"><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : (s.body ? `<div class="body">${s.body}</div>` : "")}
+    return `<div class="obj"><div class="obj-text">${HEAD(s)}
+        ${pts.length ? `<ol class="pts">${pts.map((p, i) => `<li style="--i:${i}"><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : B(s)}
         ${rows.length ? `<dl class="tag">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${LS.esc(v)}</dd></div>`).join("")}</dl>` : ""}</div>
       <figure class="obj-fig"><div class="obj-img"><img src="${s.image}" alt="${LS.esc(s.alt || "")}">
         ${pts.map((p, i) => p.x == null ? "" : `<span class="hot" style="left:${p.x}%;top:${p.y}%;--i:${i}">${LS.ar(i + 1)}</span>`).join("")}</div>
         ${s.caption ? `<figcaption class="cap">${LS.esc(s.caption)}</figcaption>` : ""}</figure></div>`;
   },
-  poll: (s) => `<div class="miniqr" id="miniqr"></div><div class="kicker">${s.kicker || "تصويت"}</div><div class="q">${s.question}</div>
+  poll: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "تصويت" })}<div class="q">${s.question}</div>
                 <div class="bars">${s.options.map((o, i) => `<div class="bar"><div>${LS.esc(o)}</div><div class="track"><div class="fill" id="f${i}"></div></div><div class="num" id="n${i}">٠</div></div>`).join("")}</div>
                 <div class="total" id="tot"></div>`,
 };
@@ -93,8 +120,10 @@ function show(i) {
   const nth = deck.slides.slice(0, i).filter((x) => x.type === "content" && !x.image && x.el === undefined).length;
   const auto = s.type === "content" && !s.image && Array.isArray(deck.elements) && deck.elements.length ? deck.elements[nth % deck.elements.length] : "";
   const el = s.el === false ? "" : (s.el || auto);
+  // .pgn: small logo icon + slide number (themes hide it on cover/section/end)
+  const pgn = deck.icon ? `<div class="pgn"><img src="${deck.icon}" alt=""><b>${LS.ar(i + 1)}</b></div>` : "";
   root.innerHTML = `<div class="slide" data-type="${s.type}${s.type === "content" && s.image ? "-img" : ""}"${el ? ` data-el="${LS.esc(el)}" style="--el:url('/themes/${deck.theme}/el/${LS.esc(el)}.svg')"` : ""}>${(R[s.type] || R.content)(s)}</div>
-    <div class="meta"><span>${LS.esc(deck.footer || "")}</span><span>${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}</span></div>`;
+    ${pgn}<div class="meta"><span>${LS.esc(deck.footer || "")}</span><span>${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}</span></div>`;
   after[s.type] && after[s.type](s);
   requestAnimationFrame(() => requestAnimationFrame(() => root.querySelector(".slide").classList.add("on")));
 }

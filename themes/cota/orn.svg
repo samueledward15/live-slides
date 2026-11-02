@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none" stroke="#DCC8A0" stroke-linejoin="round">
+<!-- Tone-on-tone Coptic knot: two interlaced squares in a double ring, eight petals (watermark ornament) -->
+<circle cx="200" cy="200" r="186" stroke-width="10"/><circle cx="200" cy="200" r="164" stroke-width="4"/>
+<rect x="88" y="88" width="224" height="224" stroke-width="14"/><rect x="88" y="88" width="224" height="224" transform="rotate(45 200 200)" stroke-width="14"/>
+<rect x="88" y="88" width="224" height="224" stroke="#F3EBDD" stroke-width="4"/><rect x="88" y="88" width="224" height="224" transform="rotate(45 200 200)" stroke="#F3EBDD" stroke-width="4"/>
+<circle cx="200" cy="200" r="44" stroke-width="12"/><path d="M200 168 V232 M168 200 H232" stroke-width="12"/>
+</svg>

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 16"><!-- title ornament: cross-diamond, dots, line (wine) -->
+<path d="M0 8 H118" stroke="#6D2E26" stroke-width="2"/><circle cx="128" cy="8" r="3" fill="#6D2E26"/>
+<path d="M146 0 L154 8 L146 16 L138 8 Z" fill="#A8322A"/><path d="M146 3 V13 M141 8 H151" stroke="#F3EBDD" stroke-width="1.6"/>
+<circle cx="164" cy="8" r="3" fill="#6D2E26"/><circle cx="175" cy="8" r="2" fill="#6D2E26"/></svg>
