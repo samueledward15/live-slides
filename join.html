@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>شارك</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/assets/engine.js"></script>
+</head>
+<body>
+<div class="phone">
+  <div class="brand"><b id="deckTitle">…</b><span id="pos"></span></div>
+  <div id="root"><div class="wait"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+</div>
+<script>
+// ===== Audience phone: shows the interactive part of the current slide =====
+const root = document.getElementById("root");
+let deck, cur = -1;
+const mine = (() => { try { return JSON.parse(localStorage.getItem("ls_mine_" + LS.session) || "{}"); } catch { return {}; } })();
+const saveMine = () => { try { localStorage.setItem("ls_mine_" + LS.session, JSON.stringify(mine)); } catch {} };
+
+const W = {
+  poll: (s) => {
+    root.innerHTML = `<div class="p-title">${s.question}</div>${s.hint ? `<div class="p-sub">${s.hint}</div>` : ""}
+      <div class="opts">${s.options.map((o, i) => `<button class="opt ${mine[s.id] === i ? "sel" : ""}" data-i="${i}">${LS.esc(o)}</button>`).join("")}</div>
+      <div class="ok" id="ok">${mine[s.id] !== undefined ? "✓ صوتك اتسجل، وتقدر تغيّره" : ""}</div>`;
+    root.querySelectorAll(".opt").forEach((b) => b.onclick = async () => {
+      const i = +b.dataset.i;
+      root.querySelectorAll(".opt").forEach((x) => x.classList.toggle("sel", x === b));
+      const { error } = await LS.submit(s.id, { choice: i });
+      document.getElementById("ok").textContent = error ? "حصلت مشكلة، جرّب تاني" : "✓ صوتك اتسجل، وتقدر تغيّره";
+      if (!error) { mine[s.id] = i; saveMine(); }
+    });
+  },
+  object: (s) => {
+    root.innerHTML = `<div class="p-title">${s.phoneTitle || s.title}</div>
+      <div class="obj-img p-obj"><img class="p-img" src="${s.image}" alt="">${(s.points || []).map((p, i) => p.x == null ? "" : `<span class="hot" style="left:${p.x}%;top:${p.y}%">${LS.ar(i + 1)}</span>`).join("")}</div>
+      ${(s.points || []).length ? `<ol class="pts">${s.points.map((p, i) => `<li><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : ""}
+      ${s.phoneText ? `<div class="p-sub">${s.phoneText}</div>` : ""}`;
+  },
+  _passive: (s) => {
+    root.innerHTML = `<div class="p-title">${s.phoneTitle || s.title || s.question || ""}</div>
+      <div class="p-sub">${s.phoneText || "تابع الشاشة… أول ما يجي سؤال هيظهرلك هنا."}</div>
+      ${s.image && s.showImageOnPhone !== false ? `<img class="p-img" src="${s.image}" alt="">` : ""}
+      <div class="wait"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+  },
+};
+
+function show(i) {
+  if (!deck || i === cur || i < 0 || i >= deck.slides.length) return;
+  cur = i; const s = deck.slides[i];
+  document.getElementById("pos").textContent = `${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}`;
+  (W[s.type] || W._passive)(s);
+  if (navigator.vibrate && s.type === "poll") navigator.vibrate(30);
+}
+
+(async () => {
+  try {
+    deck = await LS.loadDeck();
+    document.getElementById("deckTitle").textContent = deck.title;
+    if (deck.logoSmall || deck.logo) document.querySelector(".brand").insertAdjacentHTML("afterbegin", `<img src="${deck.logoSmall || deck.logo}" alt="">`);
+    show(await LS.getState());
+    LS.subscribe({ onSlide: show });
+  } catch (e) { root.innerHTML = `<div class="err">العرض ده مش موجود أو الرابط ناقص.</div>`; }
+})();
+</script>
+</body>
+</html>

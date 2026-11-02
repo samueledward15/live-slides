@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>العرض</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/assets/engine.js"></script>
+</head>
+<body>
+<div class="stage-wrap"><div class="stage" id="stage"><div class="frame"></div><div id="root"></div></div></div>
+<div class="hint" id="hint"></div>
+<script>
+// ===== Projector screen: follows the session; with ?k= it can also be driven by keyboard =====
+const stage = document.getElementById("stage"), root = document.getElementById("root");
+let deck, cur = -1;
+
+// Scale the fixed 1600x900 stage to the window
+const fit = () => { const s = Math.min(innerWidth / 1600, innerHeight / 900); stage.style.transform = `translate(-50%,-50%) scale(${s})`; };
+addEventListener("resize", fit); fit();
+
+const qr = (el, size) => { el.innerHTML = ""; new QRCode(el, { text: LS.joinUrl(), width: size, height: size, correctLevel: QRCode.CorrectLevel.M }); };
+
+// ---- slide renderers (one per type)
+const R = {
+  title: (s) => {
+    const txt = `${s.kicker ? `<div class="kicker">${LS.esc(s.kicker)}</div>` : ""}<div class="title xl">${s.title}</div>
+                 ${s.subtitle ? `<div class="subtitle">${s.subtitle}</div>` : ""}${s.pill ? `<div class="pill">${s.pill}</div>` : ""}`;
+    const art = s.art || (s.logo !== false && deck.logo);
+    return art ? `<div class="t-wrap"><div style="display:flex;flex-direction:column">${txt}</div><div class="halo"><img src="${art}" alt=""></div></div>` : txt;
+  },
+  // Timeline: items [{title, sub, color}] laid on a wavy band
+  timeline: (s) => {
+    const n = s.items.length, W = 1360, H = 430, ys = [150, 300];
+    const pts = s.items.map((_, i) => [W - (i + 0.5) * W / n, ys[i % 2]]);
+    let d = `M ${W} ${H / 2}`; pts.forEach(([x, y]) => { d += ` S ${x + W / n / 2} ${y} ${x} ${y}`; }); d += ` S 0 ${H / 2} 0 ${H / 2}`;
+    const cols = ["var(--gold-deep)", "var(--crimson)", "var(--teal)", "var(--terra)", "var(--wine)", "var(--gold)"];
+    return `${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>
+      <div class="tl"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="var(--ink)" stroke-width="14" stroke-linecap="round"/>
+        <path d="${d}" fill="none" stroke="var(--gold)" stroke-width="8" stroke-linecap="round" stroke-dasharray="2 18"/></svg>
+      ${s.items.map((it, i) => `<div class="node ${i % 2 ? "" : "up"}" style="right:${(i + 0.5) / n * 100}%;top:${pts[i][1] / H * 100}%">
+        <div class="dot" style="background:${it.color || cols[i % cols.length]}">${LS.ar(i + 1)}</div>
+        <div class="lbl">${it.title}${it.sub ? `<div class="sub">${it.sub}</div>` : ""}</div></div>`).join("")}</div>`;
+  },
+  content: (s) => s.image
+      ? `<div class="split"><div>${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>
+           ${s.body ? `<div class="body">${s.body}</div>` : ""}</div>
+           <div><img src="${s.image}" alt=""><div class="cap">${LS.esc(s.caption || "")}</div></div></div>`
+      : `${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>${s.body ? `<div class="body">${s.body}</div>` : ""}`,
+  join: (s) => `<div class="join"><div><div class="kicker">${s.kicker || "شارك معانا"}</div><div class="title">${s.title}</div>
+                 <div class="subtitle">${s.subtitle || "امسح الكود بكاميرا الموبايل"}</div><div class="url">${LS.joinUrl().replace(/^https?:\/\//, "")}</div></div>
+                 <div class="qr" id="bigqr"></div></div>`,
+  // Museum object: arched image with numbered look-points + catalogue label
+  object: (s) => {
+    const M = s.museum || {}, rows = [["المتحف", M.name], ["رقم القيد", M.inv], ["التاريخ", M.date], ["المادة", M.material], ["المصدر", M.place]].filter((r) => r[1]);
+    const pts = s.points || [];
+    return `<div class="obj"><div class="obj-text">${s.kicker ? `<div class="kicker">${s.kicker}</div>` : ""}<div class="title">${s.title}</div>
+        ${pts.length ? `<ol class="pts">${pts.map((p, i) => `<li style="--i:${i}"><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : (s.body ? `<div class="body">${s.body}</div>` : "")}
+        ${rows.length ? `<dl class="tag">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${LS.esc(v)}</dd></div>`).join("")}</dl>` : ""}</div>
+      <figure class="obj-fig"><div class="obj-img"><img src="${s.image}" alt="${LS.esc(s.alt || "")}">
+        ${pts.map((p, i) => p.x == null ? "" : `<span class="hot" style="left:${p.x}%;top:${p.y}%;--i:${i}">${LS.ar(i + 1)}</span>`).join("")}</div>
+        ${s.caption ? `<figcaption class="cap">${LS.esc(s.caption)}</figcaption>` : ""}</figure></div>`;
+  },
+  poll: (s) => `<div class="miniqr" id="miniqr"></div><div class="kicker">${s.kicker || "تصويت"}</div><div class="q">${s.question}</div>
+                <div class="bars">${s.options.map((o, i) => `<div class="bar"><div>${LS.esc(o)}</div><div class="track"><div class="fill" id="f${i}"></div></div><div class="num" id="n${i}">٠</div></div>`).join("")}</div>
+                <div class="total" id="tot"></div>`,
+};
+
+const after = {
+  join: () => qr(document.getElementById("bigqr"), 380),
+  poll: (s) => { qr(document.getElementById("miniqr"), 120); document.getElementById("miniqr").insertAdjacentHTML("beforeend", "<span>صوّت</span>"); refreshPoll(s); },
+};
+
+async function refreshPoll(s) {
+  const c = LS.tally(await LS.getResponses(s.id), s.options.length);
+  const total = c.reduce((a, b) => a + b, 0), max = Math.max(1, ...c);
+  c.forEach((v, i) => {
+    const f = document.getElementById("f" + i), n = document.getElementById("n" + i);
+    if (f) f.style.width = (v / max * 100) + "%";
+    if (n) n.textContent = s.showPercent && total ? LS.ar(Math.round(v / total * 100)) + "٪" : LS.ar(v);
+  });
+  const t = document.getElementById("tot"); if (t) t.textContent = `عدد المشاركين: ${LS.ar(total)}`;
+}
+
+function show(i) {
+  if (!deck || i === cur || i < 0 || i >= deck.slides.length) return;
+  cur = i; const s = deck.slides[i];
+  // data-type lets a theme style per slide type; s.el (optional) names a decorative element the theme can show
+  // deck.elements: optional list the theme rotates through on plain content slides (one per slide)
+  const nth = deck.slides.slice(0, i).filter((x) => x.type === "content" && !x.image && x.el === undefined).length;
+  const auto = s.type === "content" && !s.image && Array.isArray(deck.elements) && deck.elements.length ? deck.elements[nth % deck.elements.length] : "";
+  const el = s.el === false ? "" : (s.el || auto);
+  root.innerHTML = `<div class="slide" data-type="${s.type}${s.type === "content" && s.image ? "-img" : ""}"${el ? ` data-el="${LS.esc(el)}" style="--el:url('/themes/${deck.theme}/el/${LS.esc(el)}.svg')"` : ""}>${(R[s.type] || R.content)(s)}</div>
+    <div class="meta"><span>${LS.esc(deck.footer || "")}</span><span>${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}</span></div>`;
+  after[s.type] && after[s.type](s);
+  requestAnimationFrame(() => requestAnimationFrame(() => root.querySelector(".slide").classList.add("on")));
+}
+
+(async () => {
+  deck = await LS.loadDeck();
+  document.title = deck.title;
+  show(await LS.getState());
+  LS.subscribe({
+    onSlide: show,
+    onResponse: (slideId) => { const s = deck.slides[cur]; if (s && s.id === slideId && s.type === "poll") refreshPoll(s); },
+  });
+  // Keyboard control only if presenter key is in the URL
+  if (LS.key) {
+    document.getElementById("hint").textContent = "← → to navigate · F fullscreen";
+    addEventListener("keydown", (e) => {
+      if (["ArrowLeft", "PageDown", " "].includes(e.key)) LS.setSlide(Math.min(cur + 1, deck.slides.length - 1));
+      if (["ArrowRight", "PageUp"].includes(e.key)) LS.setSlide(Math.max(cur - 1, 0));
+      if (e.key.toLowerCase() === "f") document.documentElement.requestFullscreen?.();
+    });
+  }
+})();
+</script>
+</body>
+</html>

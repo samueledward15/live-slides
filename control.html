@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التحكم</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/assets/engine.js"></script>
+</head>
+<body>
+<div class="ctl">
+  <h1 id="deckTitle">الريموت</h1>
+  <div class="now"><div class="n" id="n"></div><div class="t" id="t"></div><div class="notes" id="notes"></div></div>
+  <div class="nav">
+    <button class="btn" id="prev">→ السابقة</button>
+    <button class="btn primary" id="next">التالية ←</button>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" id="reset" hidden>صفّر نتايج التصويت ده</button>
+    <a class="btn small" id="openScreen" target="_blank">افتح الشاشة</a>
+  </div>
+  <div class="err" id="err"></div>
+  <div class="list" id="list"></div>
+</div>
+<script>
+// ===== Presenter remote (phone). Needs ?k=<presenter key> =====
+let deck, cur = 0;
+const $ = (id) => document.getElementById(id);
+const label = (s) => (s.title || s.question || "").replace(/<[^>]+>/g, " ");
+
+function render() {
+  const s = deck.slides[cur];
+  $("n").textContent = `شريحة ${LS.ar(cur + 1)} من ${LS.ar(deck.slides.length)} · ${s.type}`;
+  $("t").textContent = label(s);
+  $("notes").textContent = s.notes || "";
+  $("reset").hidden = s.type !== "poll";
+  $("list").innerHTML = deck.slides.map((x, i) => `<button class="${i === cur ? "cur" : ""}" data-i="${i}">${LS.ar(i + 1)}. ${LS.esc(label(x))}</button>`).join("");
+  $("list").querySelectorAll("button").forEach((b) => b.onclick = () => go(+b.dataset.i));
+}
+async function go(i) {
+  if (i < 0 || i >= deck.slides.length) return;
+  const { error } = await LS.setSlide(i);
+  $("err").textContent = error ? "المفتاح غلط أو فيه مشكلة في النت." : "";
+  if (!error) { cur = i; render(); }
+}
+
+(async () => {
+  if (!LS.key) { $("err").textContent = "لازم تفتح الصفحة دي باللينك اللي فيه المفتاح."; return; }
+  deck = await LS.loadDeck();
+  $("deckTitle").textContent = deck.title;
+  $("openScreen").href = `/screen?s=${encodeURIComponent(LS.session)}&k=${encodeURIComponent(LS.key)}`;
+  cur = await LS.getState(); render();
+  LS.subscribe({ onSlide: (i) => { cur = i; render(); } });
+  $("next").onclick = () => go(cur + 1);
+  $("prev").onclick = () => go(cur - 1);
+  $("reset").onclick = async () => { if (confirm("تمسح كل أصوات الشريحة دي؟")) await LS.resetSlide(deck.slides[cur].id); };
+})();
+</script>
+</body>
+</html>

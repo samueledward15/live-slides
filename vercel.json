@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "redirects": [{ "source": "/", "destination": "/join?s=square", "permanent": false }],
+  "headers": [
+    { "source": "/control", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
+    { "source": "/decks/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}
