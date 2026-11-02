@@ -12,6 +12,8 @@
 <body>
 <div class="ctl">
   <h1 id="deckTitle">الريموت</h1>
+  <div class="ctimer" id="ct" hidden><b id="ctT">٥:٠٠</b><span id="ctPace"></span>
+    <div class="ctb"><button class="btn small" id="tStart">ابدأ</button><button class="btn small" id="tPause">إيقاف مؤقت</button><button class="btn small" id="tReset">من الأول</button></div></div>
   <div class="now"><div class="n" id="n"></div><div class="t" id="t"></div><div class="notes" id="notes"></div></div>
   <div class="nav">
     <button class="btn" id="prev">→ السابقة</button>
@@ -35,7 +37,7 @@ function render() {
   const s = deck.slides[cur];
   $("n").textContent = `شريحة ${LS.ar(cur + 1)} من ${LS.ar(deck.slides.length)} · ${s.type}`;
   $("t").textContent = label(s);
-  $("notes").textContent = s.notes || "";
+  $("notes").textContent = (s.sec ? `⏱ ${LS.ar(s.sec)} ث · ` : "") + (s.notes || "");
   $("reset").hidden = !["poll", "cloud", "tap", "scale", "qa"].includes(s.type);
   $("reset").textContent = s.type === "qa" ? "امسح كل الأسئلة" : "صفّر نتايج الشريحة دي";
   modPanel();
@@ -78,7 +80,26 @@ async function go(i) {
   $("deckTitle").textContent = deck.title;
   $("openScreen").href = `/screen?s=${encodeURIComponent(LS.session)}&k=${encodeURIComponent(LS.key)}`;
   cur = await LS.getState(); render();
-  LS.subscribe({ onSlide: (i) => { cur = i; render(); },
+  // timer + pacing: slide budgets (sec) add up to deck.duration
+  let resync = null;
+  if (deck.duration) {
+    $("ct").hidden = false;
+    const ends = []; deck.slides.reduce((a, x, i) => (ends[i] = a + (x.sec || 0)), 0);
+    resync = LS.watchTimer((el, running) => {
+      const left = deck.duration - el;
+      $("ctT").textContent = (left < 0 ? "+" : "") + LS.clock(left);
+      $("ct").className = "ctimer" + (left <= 0 ? " over" : left <= 60 ? " warn" : "");
+      const want = ends.findIndex((e) => e > el), target = want < 0 ? deck.slides.length - 1 : want;
+      const lag = cur - target;
+      $("ctPace").textContent = !running && el === 0 ? "بيبدأ لوحده أول ما تعدّي الغلاف" :
+        lag === 0 ? "ماشي في الوقت ✓" : lag < 0 ? `متأخر ${LS.ar(-lag)} شريحة · المفروض تكون في ${LS.ar(target + 1)}` : `قدّام بـ${LS.ar(lag)} شريحة`;
+      $("ctPace").className = lag < 0 ? "late" : "";
+    });
+    $("tStart").onclick = () => LS.timerCtl("start");
+    $("tPause").onclick = () => LS.timerCtl("pause");
+    $("tReset").onclick = () => { if (confirm("ترجّع التايمر للصفر؟")) LS.timerCtl("reset"); };
+  }
+  LS.subscribe({ onTimer: () => resync && resync(), onSlide: (i) => { cur = i; render(); },
     onResponse: (id) => { const s = deck.slides[cur]; if (s && id && (id === s.id || id.startsWith(s.id + ":"))) modPanel(); } });
   $("next").onclick = () => go(cur + 1);
   $("prev").onclick = () => go(cur - 1);

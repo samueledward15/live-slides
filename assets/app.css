@@ -146,3 +146,13 @@ a{color:var(--gold2)}
 .modp{margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:14px}.modp .n{font-weight:700;margin-bottom:8px}
 .mrow{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}.mrow span{flex:1}
 .mbtn.on{background:var(--gold);color:#1a140c}
+
+/* ---------- talk timer ---------- */
+.talk-timer{position:absolute;top:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:5;font-size:26px;font-weight:700}
+.talk-timer svg{width:34px;height:34px;transform:rotate(-90deg)}
+.talk-timer circle{fill:none;stroke-width:3.5}.talk-timer circle:first-child{stroke:rgba(127,127,127,.25)}
+.talk-timer #ttArc{stroke:currentColor;stroke-dasharray:97.4;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
+.talk-timer.idle{opacity:.45}.talk-timer.cover{opacity:0}
+.ctimer{margin:14px 0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;text-align:center}
+.ctimer b{display:block;font-size:56px;line-height:1.1}.ctimer span{display:block;font-size:15px;margin-top:4px}
+.ctimer .ctb{display:flex;gap:8px;justify-content:center;margin-top:10px}

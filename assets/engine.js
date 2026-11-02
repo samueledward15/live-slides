@@ -63,6 +63,24 @@ const LS = (() => {
     return data;
   };
 
+  // ---- talk timer (server clock): { elapsed seconds, running }
+  const timerNow = async () => {
+    const { data, error } = await db.rpc("timer_now", { p_session: session });
+    if (error || !data || !data[0]) return { elapsed: 0, running: false };
+    return { elapsed: Number(data[0].elapsed) || 0, running: !!data[0].running };
+  };
+  const timerCtl = (action) => db.rpc("timer_ctl", { p_session: session, p_key: key, p_action: action });
+  // local 1s ticker synced to the server; returns resync() to call on realtime updates
+  const watchTimer = (cb) => {
+    let base = 0, running = false, at = performance.now();
+    const sync = async () => { const t = await timerNow(); base = t.elapsed; running = t.running; at = performance.now(); tick(); };
+    const tick = () => cb(base + (running ? (performance.now() - at) / 1000 : 0), running);
+    setInterval(tick, 1000); sync(); setInterval(sync, 30000);
+    return sync;
+  };
+  // m:ss in Arabic-Indic digits
+  const clock = (sec) => { const a = Math.abs(Math.round(sec)); return ar(`${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`); };
+
   // ---- presenter moderation flags: kind "hide" (word / question) or "answered" (question)
   const getMod = async (slideId) => {
     const { data, error } = await db.from("mod").select("item,kind").eq("session_id", session).eq("slide_id", slideId);
@@ -72,10 +90,10 @@ const LS = (() => {
   const moderate = (slideId, item, kind, on) => db.rpc("moderate", { p_session: session, p_key: key, p_slide_id: slideId, p_item: item, p_kind: kind, p_on: on });
 
   // ---- realtime: onSlide(i), onResponse(slideId)
-  const subscribe = ({ onSlide, onResponse, onMod }) => {
+  const subscribe = ({ onSlide, onResponse, onMod, onTimer }) => {
     db.channel(`ls-${session}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sessions", filter: `id=eq.${session}` },
-        (p) => onSlide && onSlide(p.new.current_slide))
+        (p) => { onSlide && onSlide(p.new.current_slide); onTimer && onTimer(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "responses", filter: `session_id=eq.${session}` },
         (p) => onResponse && onResponse((p.new && p.new.slide_id) || (p.old && p.old.slide_id)))
       .on("postgres_changes", { event: "*", schema: "public", table: "mod", filter: `session_id=eq.${session}` },
@@ -100,5 +118,5 @@ const LS = (() => {
     .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة$/g, "ه").slice(0, 30);
 
   return { db, session, key, participant, registerDeck, getDeck, loadDeck, getState, setSlide, resetSlide,
-           submit, getResponses, getResponsesLike, getMod, moderate, subscribe, ar, esc, joinUrl, tally, rid, norm };
+           submit, getResponses, getResponsesLike, getMod, moderate, timerNow, timerCtl, watchTimer, clock, subscribe, ar, esc, joinUrl, tally, rid, norm };
 })();

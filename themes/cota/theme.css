@@ -255,3 +255,11 @@ body.theme-cota{
 /* remote */
 .theme-cota .modp{background:rgba(251,246,234,.95);border:1.5px solid rgba(90,64,48,.3)}.theme-cota .modp .n{color:var(--crimson)}
 .theme-cota .mbtn.on{background:var(--wine);color:#FFF8EC}
+
+/* ================= TALK TIMER ================= */
+.theme-cota .talk-timer{color:var(--muted);font-family:var(--font-display);font-size:28px}.theme-cota .talk-timer svg{width:28px;height:28px}
+.theme-cota .talk-timer.warn{color:var(--gold-deep)}.theme-cota .talk-timer.over{color:var(--crimson)}
+.theme-cota .ctimer{background:rgba(251,246,234,.95);border:1.5px solid rgba(90,64,48,.3)}
+.theme-cota .ctimer b{font-family:var(--font-display);color:var(--wine)}
+.theme-cota .ctimer.warn b{color:var(--gold-deep)}.theme-cota .ctimer.over b{color:var(--crimson)}
+.theme-cota .ctimer span{color:var(--muted);font-family:var(--font-ui)}.theme-cota .ctimer span.late{color:var(--crimson);font-weight:700}

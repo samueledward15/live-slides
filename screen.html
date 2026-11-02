@@ -11,7 +11,7 @@
 <script src="/assets/engine.js"></script>
 </head>
 <body>
-<div class="stage-wrap"><div class="stage" id="stage"><div class="frame"></div><div id="root"></div></div></div>
+<div class="stage-wrap"><div class="stage" id="stage"><div class="frame"></div><div id="root"></div><div class="talk-timer" id="tt" hidden><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5"/><circle id="ttArc" cx="18" cy="18" r="15.5"/></svg><b id="ttTxt"></b></div></div></div>
 <div class="hint" id="hint"></div>
 <script>
 // ===== Projector screen: follows the session; with ?k= it can also be driven by keyboard =====
@@ -216,6 +216,7 @@ function show(i) {
   const pgn = deck.icon ? `<div class="pgn"><img src="${deck.icon}" alt=""><b>${LS.ar(i + 1)}</b></div>` : "";
   root.innerHTML = `<div class="slide" data-type="${s.type}${s.type === "content" && s.image ? "-img" : ""}"${el ? ` data-el="${LS.esc(el)}" style="--el:url('/themes/${deck.theme}/el/${LS.esc(el)}.svg')"` : ""}>${(R[s.type] || R.content)(s)}</div>
     ${pgn}<div class="meta"><span>${LS.esc(deck.footer || "")}</span><span>${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}</span></div>`;
+  document.getElementById("tt").classList.toggle("cover", s.type === "title");
   after[s.type] && after[s.type](s);
   requestAnimationFrame(() => requestAnimationFrame(() => root.querySelector(".slide").classList.add("on")));
 }
@@ -224,7 +225,18 @@ function show(i) {
   deck = await LS.loadDeck();
   document.title = deck.title;
   show(await LS.getState());
-  LS.subscribe({
+  // talk timer: deck.duration seconds; counts down, then shows overtime
+  let resync = null;
+  if (deck.duration && deck.timer !== false) {
+    const tt = document.getElementById("tt"), arc = document.getElementById("ttArc"), txt = document.getElementById("ttTxt");
+    resync = LS.watchTimer((el, running) => {
+      const left = deck.duration - el; tt.hidden = false;
+      tt.classList.toggle("idle", !running && el === 0); tt.classList.toggle("warn", left <= 60 && left > 0); tt.classList.toggle("over", left <= 0);
+      txt.textContent = (left < 0 ? "+" : "") + LS.clock(left);
+      arc.style.strokeDashoffset = String(97.4 * Math.min(1, Math.max(0, el / deck.duration)));
+    });
+  }
+  LS.subscribe({ onTimer: () => resync && resync(),
     onSlide: show,
     onResponse: (slideId) => { const s = deck.slides[cur]; if (!s || !slideId) return;
       if (s.type === "poll" && s.id === slideId) refreshPoll(s);

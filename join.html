@@ -40,6 +40,10 @@ const W = {
       ${(s.points || []).length ? `<ol class="pts">${s.points.map((p, i) => `<li><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : ""}
       ${s.phoneText ? `<div class="p-sub">${s.phoneText}</div>` : ""}`;
   },
+  // Before/after with ask:true: phones answer the "after" poll right on the compare slide
+  compare: (s) => { const src = deck.slides.find((x) => x.id === s.from[0]);
+    if (!s.ask || !src) return W._passive(s);
+    W.poll({ ...src, id: s.from[1], hint: s.hint || "جاوب تاني بعد ما شفت العرض." }); },
   // ===== Phase 2 =====
   cloud: (s) => {
     const max = s.max || 3, mineW = (mine[s.id] || []).slice();
@@ -119,7 +123,7 @@ function show(i) {
   cur = i; const s = deck.slides[i];
   document.getElementById("pos").textContent = `${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}`;
   W._live = null; (W[s.type] && !s.type.startsWith("_") ? W[s.type] : W._passive)(s);
-  if (navigator.vibrate && ["poll", "cloud", "tap", "scale", "qa"].includes(s.type)) navigator.vibrate(30);
+  if (navigator.vibrate && (["poll", "cloud", "tap", "scale", "qa"].includes(s.type) || (s.type === "compare" && s.ask))) navigator.vibrate(30);
 }
 
 (async () => {
