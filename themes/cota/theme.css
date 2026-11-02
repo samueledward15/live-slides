@@ -111,10 +111,10 @@ body.theme-cota{
 
 /* ================= OBJECT (museum piece with look-points) ================= */
 .theme-cota .obj{position:absolute;inset:90px 140px 110px 130px;display:grid;grid-template-columns:1fr 600px;gap:90px;align-items:center}
-.theme-cota .obj .title{font-size:80px}
+.theme-cota .obj .title{font-size:70px}
 .theme-cota .obj .rule{margin:20px 0 14px}
 .theme-cota .obj-img{box-shadow:var(--photo-shadow)}
-.theme-cota .obj-img img{max-height:640px;max-width:600px;object-fit:cover}
+.theme-cota .obj-img img{height:600px;width:auto;max-width:600px;object-fit:cover}
 .theme-cota .hot{width:48px;height:48px;background:var(--crimson);color:#FFF8EC;font:700 28px var(--font-display);box-shadow:0 0 0 4px rgba(251,246,234,.92),var(--photo-shadow)}
 .theme-cota .slide.on .hot{animation:cota-pop .45s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(.7s + var(--i) * .25s)}
 @keyframes cota-pop{from{transform:translate(-50%,-50%) scale(0)}to{transform:translate(-50%,-50%) scale(1)}}
@@ -124,9 +124,14 @@ body.theme-cota{
 .theme-cota .pts b{color:var(--crimson);font-weight:700}
 .theme-cota .slide.on .pts li{animation:cota-in .5s ease-out both;animation-delay:calc(.7s + var(--i) * .25s)}
 .theme-cota .pn{width:42px;height:42px;background:var(--crimson);color:#FFF8EC;font:700 25px var(--font-display);transform:translateY(5px)}
-.theme-cota .tag{margin-top:34px;padding:16px 26px;background:#EADBC0;gap:4px 24px}
+.theme-cota .tag{margin-top:26px;padding:14px 24px;background:#EADBC0;gap:4px 18px;grid-template-columns:auto auto auto auto;width:100%}
 .theme-cota .tag dt{font:700 18px var(--font-ui);color:var(--muted)}
 .theme-cota .tag dd{font:400 22px var(--font-text);color:var(--ink)}
+/* wide pieces (friezes): head + points side by side on top, photo across the bottom */
+.theme-cota .obj.wide{grid-template-columns:1fr;grid-template-rows:auto 1fr;gap:34px;inset:80px 140px 90px}
+.theme-cota .obj.wide .obj-text{display:grid;grid-template-columns:600px 1fr;gap:80px;align-items:start}
+.theme-cota .obj.wide .obj-img img{height:auto;width:auto;max-width:1320px;max-height:350px}
+.theme-cota .obj.wide .tag{margin-top:20px}
 .theme-cota .obj-fig .cap{font:400 20px var(--font-text);color:var(--muted);margin-top:18px}
 @media (prefers-reduced-motion:reduce){.theme-cota .slide.on .hot,.theme-cota .slide.on .pts li{animation:none}}
 
@@ -142,6 +147,10 @@ body.theme-cota{
 .theme-cota .tl .node.up{flex-direction:column-reverse;transform:translate(50%,calc(-100% + 34px))}
 .theme-cota .tl .node.up .lbl{margin-bottom:14px}
 .theme-cota .tl .lbl{margin-top:14px;font:700 30px/1.2 var(--font-display);color:var(--wine)}
+.theme-cota .tl .th{display:block;width:120px;height:120px;object-fit:cover;margin:0 auto 12px;box-shadow:var(--photo-shadow);border:5px solid #FBF6EA}
+.theme-cota .tl .node.up .th{margin-top:0}
+.theme-cota .slide[data-type="timeline"] .tl:has(.th){margin-top:150px}
+.theme-cota .slide[data-type="timeline"]:has(.th){padding-top:80px}
 .theme-cota .tl .sub{font:400 22px var(--font-text);color:var(--muted);margin-top:2px}
 
 /* ================= JOIN ================= */
@@ -198,3 +207,4 @@ body.theme-cota{
 .theme-cota .btn.primary{background:var(--wine);color:#FFF8EC;border-color:var(--wine)}
 .theme-cota .list button{color:var(--muted)}
 .theme-cota .list button.cur{border-color:var(--wine);color:var(--ink);background:var(--surface-raised)}
+.theme-cota .lay-note .lst{margin-top:30px}

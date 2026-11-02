@@ -61,7 +61,7 @@ const R = {
       <figure>${IMG(s.image, "noteimg", s)}${s.note ? `<figcaption class="note">${s.note}</figcaption>` : ""}</figure></div>`,
   // Timeline: items [{title, sub, color}] laid on a wavy band
   timeline: (s) => {
-    const n = s.items.length, W = 1360, H = 430, ys = [150, 300];
+    const n = s.items.length, W = 1360, H = 430, ys = s.items.some((x) => x.img) ? [175, 255] : [150, 300];
     const pts = s.items.map((_, i) => [W - (i + 0.5) * W / n, ys[i % 2]]);
     let d = `M ${W} ${H / 2}`; pts.forEach(([x, y]) => { d += ` S ${x + W / n / 2} ${y} ${x} ${y}`; }); d += ` S 0 ${H / 2} 0 ${H / 2}`;
     const cols = ["var(--wine)", "var(--crimson)", "var(--gold-deep)", "var(--teal)", "var(--terra)", "var(--gold)"];
@@ -70,7 +70,7 @@ const R = {
         <path d="${d}" fill="none" stroke="var(--gold)" stroke-width="8" stroke-linecap="round" stroke-dasharray="2 18"/></svg>
       ${s.items.map((it, i) => `<div class="node ${i % 2 ? "" : "up"}" style="right:${(i + 0.5) / n * 100}%;top:${pts[i][1] / H * 100}%">
         <div class="dot" style="background:${it.color || cols[i % cols.length]}">${LS.ar(i + 1)}</div>
-        <div class="lbl">${it.title}${it.sub ? `<div class="sub">${it.sub}</div>` : ""}</div></div>`).join("")}</div>`;
+        <div class="lbl">${it.img ? `<img class="th" src="${it.img}" alt=""${it.pos ? ` style="object-position:${it.pos}"` : ""}>` : ""}${it.title}${it.sub ? `<div class="sub">${it.sub}</div>` : ""}</div></div>`).join("")}</div>`;
   },
   content: (s) => s.image
       ? `<div class="split"><div>${K(s)}<div class="title">${s.title}</div>
@@ -84,9 +84,9 @@ const R = {
   object: (s) => {
     const M = s.museum || {}, rows = [["المتحف", M.name], ["رقم القيد", M.inv], ["التاريخ", M.date], ["المادة", M.material], ["المصدر", M.place]].filter((r) => r[1]);
     const pts = s.points || [];
-    return `<div class="obj"><div class="obj-text">${HEAD(s)}
+    return `<div class="obj${s.wide ? " wide" : ""}"><div class="obj-text"><div class="oh">${HEAD(s)}</div><div class="ob">
         ${pts.length ? `<ol class="pts">${pts.map((p, i) => `<li style="--i:${i}"><span class="pn">${LS.ar(i + 1)}</span><span>${p.text}</span></li>`).join("")}</ol>` : B(s)}
-        ${rows.length ? `<dl class="tag">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${LS.esc(v)}</dd></div>`).join("")}</dl>` : ""}</div>
+        ${rows.length ? `<dl class="tag">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${LS.esc(v)}</dd></div>`).join("")}</dl>` : ""}</div></div>
       <figure class="obj-fig"><div class="obj-img"><img src="${s.image}" alt="${LS.esc(s.alt || "")}">
         ${pts.map((p, i) => p.x == null ? "" : `<span class="hot" style="left:${p.x}%;top:${p.y}%;--i:${i}">${LS.ar(i + 1)}</span>`).join("")}</div>
         ${s.caption ? `<figcaption class="cap">${LS.esc(s.caption)}</figcaption>` : ""}</figure></div>`;
