@@ -75,7 +75,7 @@ const LS = (() => {
     let base = 0, running = false, at = performance.now();
     const sync = async () => { const t = await timerNow(); base = t.elapsed; running = t.running; at = performance.now(); tick(); };
     const tick = () => cb(base + (running ? (performance.now() - at) / 1000 : 0), running);
-    setInterval(tick, 1000); sync(); setInterval(sync, 30000);
+    setInterval(tick, 1000); sync(); setInterval(sync, 10000);
     return sync;
   };
   // m:ss in Arabic-Indic digits

@@ -156,3 +156,10 @@ a{color:var(--gold2)}
 .ctimer{margin:14px 0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;text-align:center}
 .ctimer b{display:block;font-size:56px;line-height:1.1}.ctimer span{display:block;font-size:15px;margin-top:4px}
 .ctimer .ctb{display:flex;gap:8px;justify-content:center;margin-top:10px}
+
+/* ---------- phone images: keep them small enough to see text + options on one screen ---------- */
+.phone .p-img{display:block;width:auto;max-width:100%;max-height:34vh;margin:16px auto 0;object-fit:contain}
+.phone .p-obj{display:block;position:relative;width:fit-content;max-width:100%;margin:14px auto 0}
+.phone .p-obj img.p-img{margin:0;height:auto;width:auto;max-height:36vh;max-width:100%;object-fit:contain}
+.phone .tap-phone{display:block;width:fit-content;max-width:100%;margin:16px auto 0}
+.phone .tap-phone img{display:block;width:auto;max-width:100%;max-height:46vh}

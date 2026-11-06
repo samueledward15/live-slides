@@ -88,16 +88,26 @@ async function go(i) {
     resync = LS.watchTimer((el, running) => {
       const left = deck.duration - el;
       $("ctT").textContent = (left < 0 ? "+" : "") + LS.clock(left);
-      $("ct").className = "ctimer" + (left <= 0 ? " over" : left <= 60 ? " warn" : "");
+      $("ct").className = "ctimer" + (left <= 0 ? " over" : left <= 60 ? " warn" : "") + (running ? "" : " paused");
+      $("tStart").hidden = running; $("tPause").hidden = !running;
+      $("tStart").textContent = el > 0 ? "كمّل" : "ابدأ";
       const want = ends.findIndex((e) => e > el), target = want < 0 ? deck.slides.length - 1 : want;
       const lag = cur - target;
-      $("ctPace").textContent = !running && el === 0 ? "بيبدأ لوحده أول ما تعدّي الغلاف" :
+      $("ctPace").textContent = !running && el === 0 ? "بيبدأ لوحده أول ما تعدّي الغلاف" : !running ? "التايمر واقف" :
         lag === 0 ? "ماشي في الوقت ✓" : lag < 0 ? `متأخر ${LS.ar(-lag)} شريحة · المفروض تكون في ${LS.ar(target + 1)}` : `قدّام بـ${LS.ar(lag)} شريحة`;
       $("ctPace").className = lag < 0 ? "late" : "";
     });
-    $("tStart").onclick = () => LS.timerCtl("start");
-    $("tPause").onclick = () => LS.timerCtl("pause");
-    $("tReset").onclick = () => { if (confirm("ترجّع التايمر للصفر؟")) LS.timerCtl("reset"); };
+    // send the command, then resync right away (don't wait for realtime); show any error
+    const ctl = async (action) => {
+      ["tStart", "tPause", "tReset"].forEach((id) => ($(id).disabled = true));
+      const { error } = await LS.timerCtl(action);
+      $("err").textContent = error ? "التايمر ما اتغيّرش: " + (error.message || "مشكلة في النت") : "";
+      await resync();
+      ["tStart", "tPause", "tReset"].forEach((id) => ($(id).disabled = false));
+    };
+    $("tStart").onclick = () => ctl("start");
+    $("tPause").onclick = () => ctl("pause");
+    $("tReset").onclick = () => { if (confirm("ترجّع التايمر للصفر؟")) ctl("reset"); };
   }
   LS.subscribe({ onTimer: () => resync && resync(), onSlide: (i) => { cur = i; render(); },
     onResponse: (id) => { const s = deck.slides[cur]; if (s && id && (id === s.id || id.startsWith(s.id + ":"))) modPanel(); } });
