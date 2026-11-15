@@ -21,6 +21,7 @@
   </div>
   <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn small" id="reset" hidden>صفّر نتايج التصويت ده</button>
+    <button class="btn small" id="pins" hidden>إخفاء الأرقام</button>
     <a class="btn small" id="openScreen" target="_blank">افتح الشاشة</a>
   </div>
   <div class="err" id="err"></div>
@@ -38,8 +39,9 @@ function render() {
   $("n").textContent = `شريحة ${LS.ar(cur + 1)} من ${LS.ar(deck.slides.length)} · ${s.type}`;
   $("t").textContent = label(s);
   $("notes").textContent = (s.sec ? `⏱ ${LS.ar(s.sec)} ث · ` : "") + (s.notes || "");
-  $("reset").hidden = !["poll", "cloud", "tap", "scale", "qa"].includes(s.type);
-  $("reset").textContent = s.type === "qa" ? "امسح كل الأسئلة" : "صفّر نتايج الشريحة دي";
+  $("reset").hidden = !["poll", "cloud", "tap", "scale", "qa", "compare"].includes(s.type);
+  $("reset").textContent = s.type === "qa" ? "امسح كل الأسئلة" : s.type === "compare" ? "صفّر التصويتين (قبل وبعد)" : "صفّر نتايج الشريحة دي";
+  $("pins").hidden = s.type !== "object";
   modPanel();
   $("list").innerHTML = deck.slides.map((x, i) => `<button class="${i === cur ? "cur" : ""}" data-i="${i}">${LS.ar(i + 1)}. ${LS.esc(label(x))}</button>`).join("");
   $("list").querySelectorAll("button").forEach((b) => b.onclick = () => go(+b.dataset.i));
@@ -109,11 +111,29 @@ async function go(i) {
     $("tPause").onclick = () => ctl("pause");
     $("tReset").onclick = () => { if (confirm("ترجّع التايمر للصفر؟")) ctl("reset"); };
   }
-  LS.subscribe({ onTimer: () => resync && resync(), onSlide: (i) => { cur = i; render(); },
+  LS.subscribe({ onTimer: () => resync && resync(), onSession: (row) => { if ("show_pins" in row) { pinsOn = row.show_pins !== false; pinsLabel(); } modPanel(); },
+    onSlide: (i) => { cur = i; render(); },
     onResponse: (id) => { const s = deck.slides[cur]; if (s && id && (id === s.id || id.startsWith(s.id + ":"))) modPanel(); } });
   $("next").onclick = () => go(cur + 1);
   $("prev").onclick = () => go(cur - 1);
-  $("reset").onclick = async () => { if (confirm("تمسح كل ردود الشريحة دي؟")) await LS.resetSlide(deck.slides[cur].id); };
+  // compare slides reset both source polls
+  $("reset").onclick = async () => {
+    const s = deck.slides[cur], ids = s.type === "compare" ? s.from : [s.id];
+    if (!confirm(s.type === "compare" ? "تمسح أصوات التصويتين (أول العرض وآخره)؟" : "تمسح كل ردود الشريحة دي؟")) return;
+    const res = await Promise.all(ids.map((id) => LS.resetSlide(id)));
+    const bad = res.find((r) => r.error);
+    $("err").textContent = bad ? "ما اتصفّرش: " + (bad.error.message || "مشكلة في النت") : "";
+    if (!bad) { $("reset").textContent = "✓ اتصفّر"; setTimeout(render, 1500); }
+  };
+  // deck-wide pins toggle
+  let pinsOn = await LS.getPins();
+  const pinsLabel = () => ($("pins").textContent = pinsOn ? "إخفاء الأرقام من الصور" : "إظهار الأرقام على الصور");
+  pinsLabel();
+  $("pins").onclick = async () => {
+    const { error } = await LS.setPins(!pinsOn);
+    $("err").textContent = error ? "الأرقام ما اتغيّرتش: " + (error.message || "مشكلة في النت") : "";
+    if (!error) { pinsOn = !pinsOn; pinsLabel(); }
+  };
 })();
 </script>
 </body>

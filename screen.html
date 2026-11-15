@@ -236,7 +236,12 @@ function show(i) {
       arc.style.strokeDashoffset = String(97.4 * Math.min(1, Math.max(0, el / deck.duration)));
     });
   }
+  const pins = (on) => document.body.classList.toggle("no-pins", !on);
+  pins(await LS.getPins());
+  // any session-row update (reset, hide/show, pins) → redraw the live data of the current slide
+  const refreshCurrent = () => { const s = deck.slides[cur]; if (!s) return; s.type === "poll" ? refreshPoll(s) : refresh(s); };
   LS.subscribe({ onTimer: () => resync && resync(),
+    onSession: (row) => { if ("show_pins" in row) pins(row.show_pins !== false); refreshCurrent(); },
     onSlide: show,
     onResponse: (slideId) => { const s = deck.slides[cur]; if (!s || !slideId) return;
       if (s.type === "poll" && s.id === slideId) refreshPoll(s);

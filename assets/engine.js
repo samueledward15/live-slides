@@ -41,6 +41,12 @@ const LS = (() => {
   })();
 
   // ---- session state
+  // show/hide the numbered pins on museum-piece slides (deck-wide flag on the session row)
+  const getPins = async () => {
+    const { data } = await db.from("sessions").select("show_pins").eq("id", session).single();
+    return !data || data.show_pins !== false;
+  };
+  const setPins = (on) => db.rpc("set_pins", { p_session: session, p_key: key, p_on: on });
   const getState = async () => {
     const { data, error } = await db.from("sessions").select("current_slide").eq("id", session).single();
     if (error) throw error;
@@ -90,10 +96,10 @@ const LS = (() => {
   const moderate = (slideId, item, kind, on) => db.rpc("moderate", { p_session: session, p_key: key, p_slide_id: slideId, p_item: item, p_kind: kind, p_on: on });
 
   // ---- realtime: onSlide(i), onResponse(slideId)
-  const subscribe = ({ onSlide, onResponse, onMod, onTimer }) => {
+  const subscribe = ({ onSlide, onResponse, onMod, onTimer, onSession }) => {
     db.channel(`ls-${session}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sessions", filter: `id=eq.${session}` },
-        (p) => { onSlide && onSlide(p.new.current_slide); onTimer && onTimer(); })
+        (p) => { onSlide && onSlide(p.new.current_slide); onTimer && onTimer(); onSession && onSession(p.new); })
       .on("postgres_changes", { event: "*", schema: "public", table: "responses", filter: `session_id=eq.${session}` },
         (p) => onResponse && onResponse((p.new && p.new.slide_id) || (p.old && p.old.slide_id)))
       .on("postgres_changes", { event: "*", schema: "public", table: "mod", filter: `session_id=eq.${session}` },
@@ -118,5 +124,5 @@ const LS = (() => {
     .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة$/g, "ه").slice(0, 30);
 
   return { db, session, key, participant, registerDeck, getDeck, loadDeck, getState, setSlide, resetSlide,
-           submit, getResponses, getResponsesLike, getMod, moderate, timerNow, timerCtl, watchTimer, clock, subscribe, ar, esc, joinUrl, tally, rid, norm };
+           submit, getResponses, getResponsesLike, getMod, moderate, getPins, setPins, timerNow, timerCtl, watchTimer, clock, subscribe, ar, esc, joinUrl, tally, rid, norm };
 })();

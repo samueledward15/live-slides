@@ -132,7 +132,9 @@ function show(i) {
     document.getElementById("deckTitle").textContent = deck.title;
     if (deck.logoSmall || deck.logo) document.querySelector(".brand").insertAdjacentHTML("afterbegin", `<img src="${deck.logoSmall || deck.logo}" alt="">`);
     show(await LS.getState());
-    LS.subscribe({ onSlide: show, onResponse: (id) => { const s = deck.slides[cur]; if (s && s.type === "qa" && id && (id === s.id || id.startsWith(s.id + ":")) && W._live) W._live(); } });
+    const pins = (on) => document.body.classList.toggle("no-pins", !on);
+    pins(await LS.getPins());
+    LS.subscribe({ onSlide: show, onSession: (row) => { if ("show_pins" in row) pins(row.show_pins !== false); if (W._live) W._live(); }, onResponse: (id) => { const s = deck.slides[cur]; if (s && s.type === "qa" && id && (id === s.id || id.startsWith(s.id + ":")) && W._live) W._live(); } });
   } catch (e) { root.innerHTML = `<div class="err">العرض ده مش موجود أو الرابط ناقص.</div>`; }
 })();
 </script>
