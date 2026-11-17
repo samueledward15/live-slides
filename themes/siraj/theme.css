@@ -1,0 +1,213 @@
+/* THEME: siraj — Siraj design system v2 (Papyrus). Modern neo-Coptic: papyrus ground, umber contours,
+   gold haloes, arched niches, lapis / cinnabar / gold pigments. Reem Kufi titles, IBM Plex Sans Arabic text, Amiri Scripture.
+   Layouts: title · join · cloud · hero · cards · poll · ab · timeline · end */
+@import url("https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Amiri:wght@400;700&family=Noto+Sans+Coptic&display=swap");
+
+body.theme-siraj{
+  /* tokens (Papyrus theme) */
+  --page:#f5ecdc; --page-raised:#fffaf0; --papyrus:#ead9b9; --rule-c:#d8c4a3;
+  --ink:#2b1d14; --ink-muted:#6b5444;
+  --lapis:#1f3a75; --on-lapis:#fffaf0; --lapis-soft:#dbe2f1;
+  --gold:#d4952a; --gold-soft:#f6e2b5; --cinnabar:#a5321c; --cinnabar-soft:#f6d6cb; --clay:#a65a36;
+  --hue-lapis:#2f56a6; --hue-lapis-soft:#dce4f4; --hue-vermilion:#c9482c; --hue-vermilion-soft:#f8dbd1;
+  --hue-ochre:#d79b2e; --hue-ochre-soft:#f7e6bf; --hue-nile:#1f7a74; --hue-nile-soft:#d2e9e5;
+  --hue-madder:#b8496a; --hue-madder-soft:#f5d9e1; --hue-amethyst:#6a4f9c; --hue-amethyst-soft:#e3dcf1;
+  --hue-faience:#2b93b0; --hue-faience-soft:#d3ecf2; --hue-wine:#7d2f45; --hue-wine-soft:#f0d8de;
+  --shadow-paper:0 1px 1px rgba(43,29,20,.12),0 10px 18px -8px rgba(43,29,20,.30);
+  --inlay:inset 0 0 0 2px #2b1d14;
+  --f-display:"Reem Kufi","Noto Kufi Arabic",Tahoma,sans-serif;
+  --f-body:"IBM Plex Sans Arabic","IBM Plex Sans",Tahoma,sans-serif;
+  --f-scripture:"Amiri","Noto Naskh Arabic",Georgia,serif;
+  --f-coptic:"Noto Sans Coptic",sans-serif;
+  /* engine vars */
+  --bg:var(--page); --bg2:var(--page-raised); --muted:var(--ink-muted); --line:var(--rule-c); --good:var(--hue-nile);
+  --display:var(--f-display); --body:var(--f-body);
+  background:var(--page); color:var(--ink); font-family:var(--f-body);
+}
+.theme-siraj .coptic{font-family:var(--f-coptic);color:var(--cinnabar)}
+
+/* ================= STAGE: papyrus field framed by the lozenge band ================= */
+.theme-siraj .stage-wrap{background:#1a120c}
+.theme-siraj .stage{background:url("/themes/siraj/papyrus.svg") 0 0/320px 320px,var(--page);color:var(--ink)}
+.theme-siraj .stage::before,.theme-siraj .stage::after{content:"";position:absolute;left:0;right:0;height:22px;z-index:3;
+  background:url("/themes/siraj/band-lozenge.svg") 0 0/auto 22px repeat-x}
+.theme-siraj .stage::before{top:0}.theme-siraj .stage::after{bottom:0}
+.theme-siraj .frame,.theme-siraj .meta{display:none}
+.theme-siraj .slide{inset:0;display:block;padding:96px 140px 80px}
+.theme-siraj .slide.on .card,.theme-siraj .slide.on .abc{animation:sj-rise .45s ease-out both;animation-delay:calc(.15s + var(--i,0) * .12s)}
+@keyframes sj-rise{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes sj-flicker{0%,100%{opacity:1}40%{opacity:.75}60%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.theme-siraj .slide.on .card,.theme-siraj .slide.on .abc{animation:none}}
+
+/* page number: lamp mark + numeral, bottom-left */
+.theme-siraj .pgn{position:absolute;bottom:38px;left:60px;display:flex;align-items:center;gap:12px;z-index:4}
+.theme-siraj .pgn img{height:46px}
+.theme-siraj .pgn b{font:600 26px var(--f-display);color:var(--ink-muted)}
+.theme-siraj .slide[data-type="title"]~.pgn,.theme-siraj .slide[data-type="end"]~.pgn,.theme-siraj .slide[data-type="join"]~.pgn{display:none}
+
+/* ================= TYPE ================= */
+/* kicker = the cinnabar Ribbon (one emphasis per page) */
+.theme-siraj .kicker{display:inline-block;background:var(--cinnabar);color:var(--on-lapis);font:600 24px var(--f-display);
+  padding:6px 22px 8px;margin-bottom:22px;letter-spacing:0}
+.theme-siraj .title{font:700 76px/1.2 var(--f-display);color:var(--ink);text-wrap:balance}
+.theme-siraj .title.xl{font-size:112px;line-height:1.1}
+.theme-siraj .sub{font:500 34px/1.4 var(--f-display);color:var(--ink-muted);margin-top:10px}
+.theme-siraj .subtitle{font:500 36px/1.6 var(--f-body);color:var(--ink);margin-top:18px}
+.theme-siraj .body{font:400 32px/1.75 var(--f-body);color:var(--ink);margin-top:18px;max-width:none}
+.theme-siraj .body b{color:var(--cinnabar);font-weight:700}
+.theme-siraj .q{font:700 62px/1.25 var(--f-display);color:var(--ink);text-wrap:balance;max-width:1180px}
+.theme-siraj .rule{width:120px;height:6px;background:var(--gold);box-shadow:0 0 0 1.5px var(--ink);margin:24px 0 8px}
+.theme-siraj .rule.c{margin:26px auto}
+.theme-siraj .total{font:400 22px var(--f-body);color:var(--ink-muted)}
+
+/* ================= TITLE: split ground, lamp mark in a gold halo ================= */
+.theme-siraj .slide[data-type="title"]{background:linear-gradient(180deg,transparent 0 64%,var(--gold-soft) 64%)}
+.theme-siraj .slide[data-type="title"]::after{content:"";position:absolute;left:0;right:0;top:64%;height:2px;background:var(--ink)}
+.theme-siraj .hd{position:absolute;top:58px;right:120px;left:120px;display:flex;justify-content:space-between;font:500 24px var(--f-display);color:var(--ink-muted)}
+.theme-siraj .cover{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center}
+.theme-siraj .slide[data-type="title"] .cover{top:110px;transform:none}
+.theme-siraj .slide[data-type="title"] .title.xl{font-size:124px}
+.theme-siraj .cover .logo{display:block;width:150px;height:150px;margin:0 auto 26px;border-radius:50%;
+  box-shadow:0 0 0 14px var(--gold-soft),0 0 0 16px var(--ink),0 0 0 26px var(--gold),0 0 0 28px var(--ink)}
+.theme-siraj .slide.on .cover .logo{animation:sj-rise .6s ease-out both}
+.theme-siraj .slide[data-type="title"] .subtitle{position:absolute;left:0;right:0;top:500px;margin:0;font:600 44px var(--f-display);color:var(--ink)}
+.theme-siraj .subtitle .by{font:500 28px var(--f-body);color:var(--ink-muted);margin-top:14px}
+.theme-siraj .slide[data-type="title"] .kicker{margin-bottom:14px}
+
+/* ================= JOIN ================= */
+.theme-siraj .join{position:absolute;inset:0 170px 0 190px;display:grid;grid-template-columns:1fr auto;gap:100px;align-items:center}
+.theme-siraj .join .subtitle{margin-top:0;font-size:32px}
+.theme-siraj .qr{background:var(--page-raised);border-radius:10px;padding:24px;box-shadow:var(--inlay),var(--shadow-paper)}
+.theme-siraj .url{font:600 30px var(--f-body);color:var(--lapis);direction:ltr;text-align:right;margin-top:22px}
+
+/* mini QR on interactive slides */
+.theme-siraj .miniqr{top:62px;left:70px;background:var(--page-raised);border-radius:10px;padding:10px;box-shadow:var(--inlay),var(--shadow-paper)}
+.theme-siraj .miniqr span{color:var(--ink);font:600 15px var(--f-display)}
+
+/* ================= CLOUD ================= */
+.theme-siraj .cloud{font-family:var(--f-display);min-height:470px;margin-top:20px;padding:0 60px;gap:6px 40px}
+.theme-siraj .cloud span{animation:sj-rise .5s ease-out both}
+.theme-siraj .cloud .empty{font:400 30px var(--f-body);color:var(--ink-muted)}
+
+/* ================= HERO: idea + the name in a niche ================= */
+.theme-siraj .lay-hero{grid-template-columns:1fr 560px;gap:90px}
+.theme-siraj .lay-hero .title{font-size:70px}
+.theme-siraj .hero-niche{width:400px;padding:70px 30px 44px;background:var(--hue-lapis-soft);border:10px solid var(--hue-lapis);
+  border-radius:200px 200px 0 0;box-shadow:inset 0 0 0 2px var(--ink),0 0 0 2px var(--ink)}
+.theme-siraj .hero-niche .big{font:400 132px/1 var(--f-coptic);color:var(--cinnabar)}
+.theme-siraj .hero-niche .bigsub{font:600 30px var(--f-display);color:var(--ink);margin-top:20px}
+.theme-siraj .verse{font:400 31px/1.9 var(--f-scripture);color:var(--ink);margin:28px 0 0;padding:0 10px}
+.theme-siraj .ref{display:inline-block;margin-top:10px;background:var(--hue-lapis-soft);border-radius:4px;padding:2px 14px;font:500 22px var(--f-body)}
+
+/* ================= CARDS: arched niches, one pigment each ================= */
+.theme-siraj .slide[data-type="cards"]{display:flex;flex-direction:column;align-items:flex-start}
+.theme-siraj .cards{margin:auto 0;width:100%;gap:28px;align-items:stretch}
+.theme-siraj .card{--h:var(--hue-lapis);--hs:var(--hue-lapis-soft);background:var(--page-raised);border-radius:999px 999px 10px 10px;
+  padding:40px 24px 34px;box-shadow:var(--inlay),var(--shadow-paper);gap:12px;min-height:420px}
+.theme-siraj .card:nth-child(2){--h:var(--hue-vermilion);--hs:var(--hue-vermilion-soft)}
+.theme-siraj .card:nth-child(3){--h:var(--hue-ochre);--hs:var(--hue-ochre-soft)}
+.theme-siraj .card:nth-child(4){--h:var(--hue-nile);--hs:var(--hue-nile-soft)}
+.theme-siraj .card:nth-child(5){--h:var(--hue-madder);--hs:var(--hue-madder-soft)}
+.theme-siraj .card .niche{width:150px;height:172px;border-radius:75px 75px 0 0;background:var(--hs);border:7px solid var(--h);
+  box-shadow:inset 0 0 0 2px var(--ink),0 0 0 2px var(--ink);position:relative;margin-bottom:8px}
+.theme-siraj .card .niche::before{content:"";position:absolute;width:104px;height:104px;border-radius:50%;left:50%;top:54%;transform:translate(-50%,-50%);
+  background:var(--gold-soft);box-shadow:0 0 0 4px var(--gold),0 0 0 5.5px var(--ink)}
+.theme-siraj .card .niche img{position:relative;width:70px;height:70px;margin-top:16px}
+.theme-siraj .card .niche b{position:relative;font:700 60px var(--f-display);color:var(--ink);margin-top:16px}
+.theme-siraj .card .ct{font:700 34px/1.3 var(--f-display);color:var(--ink)}
+.theme-siraj .card .cx{font:400 24px/1.65 var(--f-body);color:var(--ink-muted)}
+.theme-siraj .card.hl{box-shadow:0 0 0 4px var(--gold),0 0 0 6px var(--ink),var(--shadow-paper)}
+.theme-siraj .hlb{background:var(--cinnabar-soft);color:var(--cinnabar);font:600 18px var(--f-display);padding:2px 14px;border-radius:4px}
+.theme-siraj .cards.n5 .card{padding:34px 16px 28px}.theme-siraj .cards.n5 .ct{font-size:31px}.theme-siraj .cards.n5 .cx{font-size:22px}
+.theme-siraj .cardqr{left:70px;top:62px;bottom:auto}.theme-siraj .cardqr>div{background:var(--page-raised);border-radius:10px;padding:10px;box-shadow:var(--inlay)}
+.theme-siraj .cardqr span{font:600 18px var(--f-display);color:var(--ink)}
+.theme-siraj .vq{font-family:var(--f-scripture);font-weight:700}
+
+/* ================= POLL ================= */
+.theme-siraj .slide[data-type="poll"],.theme-siraj .slide[data-type="ab"],.theme-siraj .slide[data-type="cloud"]{padding:96px 150px 70px 270px}
+.theme-siraj .slide[data-type="cloud"]{padding-left:150px}.theme-siraj .slide[data-type="cloud"] .q{padding-left:200px}
+.theme-siraj .bars{margin-top:44px;gap:22px}
+.theme-siraj .bar{grid-template-columns:400px 1fr 90px;font:500 32px var(--f-display);color:var(--ink)}
+.theme-siraj .track{background:var(--page-raised);border:none;height:48px;border-radius:4px;box-shadow:var(--inlay)}
+.theme-siraj .fill{background:var(--hue-lapis);border-radius:4px;box-shadow:var(--inlay)}
+.theme-siraj .bar:nth-child(2) .fill{background:var(--hue-vermilion)}.theme-siraj .bar:nth-child(3) .fill{background:var(--hue-ochre)}
+.theme-siraj .bar:nth-child(4) .fill{background:var(--hue-nile)}
+.theme-siraj .num{font:700 40px var(--f-display);color:var(--ink)}
+.theme-siraj .bar.right .fill{background:var(--hue-nile)}.theme-siraj .bar.right .num{color:var(--hue-nile)}
+.theme-siraj .bar.right>div:first-child::after{content:" ✓";color:var(--hue-nile)}
+/* reveal note = papyrus fragment */
+.theme-siraj .reveal{margin-top:30px;background:var(--papyrus);padding:22px 30px;font:400 28px/1.7 var(--f-body);color:var(--ink);box-shadow:var(--shadow-paper);max-width:1150px}
+.theme-siraj .reveal:empty{display:none}
+.theme-siraj .reveal b{color:var(--cinnabar)}
+
+/* ================= A/B ================= */
+.theme-siraj .ab{gap:36px;margin-top:34px}
+.theme-siraj .abc{background:var(--page-raised);border:none;border-radius:10px;box-shadow:var(--inlay),var(--shadow-paper);padding:24px 30px}
+.theme-siraj .abl{display:inline-block;width:fit-content;background:var(--hue-lapis-soft);color:var(--ink);font:700 26px var(--f-display);padding:2px 16px;border-radius:4px}
+.theme-siraj .abc:nth-child(2) .abl{background:var(--hue-vermilion-soft)}
+.theme-siraj .abt{font:400 25px/1.75 var(--f-body);color:var(--ink)}
+.theme-siraj .abm .track{height:30px}.theme-siraj .abc:nth-child(2) .fill{background:var(--hue-vermilion)}
+.theme-siraj .abm b{font:700 36px var(--f-display);color:var(--ink)}
+.theme-siraj .abc.right{box-shadow:0 0 0 4px var(--hue-nile),0 0 0 6px var(--ink),var(--shadow-paper)}
+.theme-siraj .abc.right .abl::after{content:" ✓"}
+
+/* ================= TIMELINE ================= */
+.theme-siraj .slide[data-type="timeline"]{padding:96px 130px 0}
+.theme-siraj .tl{position:relative;height:420px;margin-top:40px}
+.theme-siraj .tl svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.theme-siraj .tl svg path:first-child{stroke:var(--ink);stroke-width:4}
+.theme-siraj .tl svg path:last-child{stroke:var(--gold);stroke-width:8;stroke-dasharray:1 18}
+.theme-siraj .tl .node{position:absolute;transform:translate(50%,-34px);display:flex;flex-direction:column;align-items:center;width:230px;text-align:center}
+.theme-siraj .tl .node.up{flex-direction:column-reverse;transform:translate(50%,calc(-100% + 34px))}
+.theme-siraj .tl .dot{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font:700 32px var(--f-display);color:var(--ink);
+  background:var(--gold-soft)!important;box-shadow:0 0 0 5px var(--gold),0 0 0 7px var(--ink)}
+.theme-siraj .tl .node:last-child .dot{background:var(--gold)!important}
+.theme-siraj .tl .lbl{margin-top:20px;font:700 30px/1.25 var(--f-display);color:var(--ink)}
+.theme-siraj .tl .node.up .lbl{margin:0 0 20px}
+.theme-siraj .tl .sub{font:400 21px/1.5 var(--f-body);color:var(--ink-muted);margin-top:4px}
+
+/* ================= END ================= */
+.theme-siraj .slide[data-type="end"] .cover{top:46%}
+.theme-siraj .slide[data-type="end"] .title.xl{font-size:96px}
+.theme-siraj .slide[data-type="end"] .subtitle{font-size:30px}
+.theme-siraj .steps{display:flex;justify-content:center;gap:26px;margin-top:28px}
+.theme-siraj .steps span{background:var(--page-raised);box-shadow:var(--inlay);border-radius:10px;padding:10px 22px;font:500 26px var(--f-body)}
+.theme-siraj .steps b{font-family:var(--f-display);color:var(--cinnabar);margin-left:8px}
+.theme-siraj .endverse{font:400 30px/1.8 var(--f-scripture);margin-top:30px}
+.theme-siraj .endverse .ref{margin-right:10px;font-size:20px}
+
+/* ================= TALK TIMER ================= */
+.theme-siraj .talk-timer{top:34px;color:var(--ink-muted);font:600 24px var(--f-display)}
+.theme-siraj .talk-timer svg{width:26px;height:26px}
+.theme-siraj .talk-timer.warn{color:var(--gold)}.theme-siraj .talk-timer.over{color:var(--cinnabar)}
+
+/* ================= PHONE ================= */
+.theme-siraj .phone{background:url("/themes/siraj/band-lozenge.svg") 0 0/auto 14px repeat-x,url("/themes/siraj/papyrus.svg") 0 0/320px 320px,var(--page);
+  min-height:100vh;padding-top:34px;padding-bottom:56px}
+.theme-siraj .brand{border-bottom:1.5px solid var(--rule-c);color:var(--ink-muted)}
+.theme-siraj .brand b{color:var(--ink);font:700 19px var(--f-display)}
+.theme-siraj .brand img{width:36px;height:36px}
+.theme-siraj .p-title{font:700 28px/1.35 var(--f-display);color:var(--ink)}
+.theme-siraj .p-sub{color:var(--ink-muted);font:400 17px/1.7 var(--f-body)}
+.theme-siraj .opt{background:var(--page-raised);border:1.5px solid var(--rule-c);color:var(--ink);font:500 18px/1.5 var(--f-body);border-radius:10px;box-shadow:var(--shadow-paper)}
+.theme-siraj .opt.sel{background:var(--hue-lapis-soft);border-color:var(--lapis);box-shadow:inset -5px 0 0 var(--lapis)}
+.theme-siraj .opt.right{border-color:var(--hue-nile);box-shadow:inset -5px 0 0 var(--hue-nile)}
+.theme-siraj .opt.send{background:var(--lapis);color:var(--on-lapis);border-color:var(--lapis);font-family:var(--f-display);font-weight:600}
+.theme-siraj .ok{color:var(--hue-nile);font-weight:600}
+.theme-siraj .p-reveal{background:var(--papyrus);padding:12px 14px;box-shadow:var(--shadow-paper)}.theme-siraj .p-reveal:empty{display:none}
+.theme-siraj .wait .dot{background:var(--gold)}
+.theme-siraj .cl-form input{background:var(--page-raised);border:1.5px solid var(--rule-c);color:var(--ink);font-family:var(--f-body)}
+.theme-siraj .chip{background:var(--gold-soft);border-color:var(--ink);color:var(--ink);font-weight:600}
+
+/* ================= REMOTE ================= */
+.theme-siraj .ctl{background:url("/themes/siraj/band-lozenge.svg") 0 0/auto 14px repeat-x,var(--page);min-height:100vh;padding-top:30px}
+.theme-siraj .ctl h1{font:700 24px var(--f-display);color:var(--ink)}
+.theme-siraj .now,.theme-siraj .modp,.theme-siraj .ctimer{background:var(--page-raised);border:1.5px solid var(--rule-c);border-radius:10px}
+.theme-siraj .now .n,.theme-siraj .modp .n{color:var(--cinnabar);font-family:var(--f-display)}
+.theme-siraj .notes{color:var(--ink-muted);font-size:16px}
+.theme-siraj .btn{background:var(--page-raised);border:1.5px solid var(--rule-c);color:var(--ink);border-radius:10px;font-family:var(--f-display)}
+.theme-siraj .btn.primary{background:var(--lapis);color:var(--on-lapis);border-color:var(--lapis)}
+.theme-siraj .mbtn.on{background:var(--hue-nile);color:var(--on-lapis)}
+.theme-siraj .list button{color:var(--ink-muted)}.theme-siraj .list button.cur{border-color:var(--lapis);color:var(--ink);background:var(--page-raised)}
+.theme-siraj .ctimer b{font-family:var(--f-display);color:var(--ink)}.theme-siraj .ctimer.over b{color:var(--cinnabar)}
+.theme-siraj .ctimer span.late{color:var(--cinnabar);font-weight:700}

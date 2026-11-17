@@ -39,7 +39,7 @@ function render() {
   $("n").textContent = `شريحة ${LS.ar(cur + 1)} من ${LS.ar(deck.slides.length)} · ${s.type}`;
   $("t").textContent = label(s);
   $("notes").textContent = (s.sec ? `⏱ ${LS.ar(s.sec)} ث · ` : "") + (s.notes || "");
-  $("reset").hidden = !["poll", "cloud", "tap", "scale", "qa", "compare"].includes(s.type);
+  $("reset").hidden = !["poll", "cloud", "tap", "scale", "qa", "compare", "ab"].includes(s.type);
   $("reset").textContent = s.type === "qa" ? "امسح كل الأسئلة" : s.type === "compare" ? "صفّر التصويتين (قبل وبعد)" : "صفّر نتايج الشريحة دي";
   $("pins").hidden = s.type !== "object";
   modPanel();
@@ -49,11 +49,16 @@ function render() {
 // ---- moderation panel: hide words / questions, mark answered, reveal tap answer
 async function modPanel() {
   const s = deck.slides[cur], el = $("modp");
-  if (!["cloud", "qa", "tap"].includes(s.type)) { el.hidden = true; el.innerHTML = ""; return; }
+  const answerable = ["poll", "ab"].includes(s.type) && s.answer != null;
+  if (!["cloud", "qa", "tap"].includes(s.type) && !answerable) { el.hidden = true; el.innerHTML = ""; return; }
   el.hidden = false;
   const mod = await LS.getMod(s.id); const has = (item, kind) => mod.some((m) => m.item === item && m.kind === kind);
   let rows = [];
-  if (s.type === "tap") {
+  if (answerable) {
+    const right = (s.options || s.cards.map((c) => c.label))[s.answer];
+    rows = [`<div class="notes">الإجابة الصح: ${LS.esc(right)}</div>`,
+      `<button class="btn small mbtn ${has("reveal", "answered") ? "on" : ""}" data-i="reveal" data-k="answered">${has("reveal", "answered") ? "اخفي الإجابة" : "اكشف الإجابة"}</button>`];
+  } else if (s.type === "tap") {
     rows = s.answer ? [`<button class="btn small mbtn ${has("reveal", "answered") ? "on" : ""}" data-i="reveal" data-k="answered">${has("reveal", "answered") ? "اخفي الإجابة" : "اكشف الإجابة"}</button>`] : [];
   } else if (s.type === "cloud") {
     const m = new Map(); (await LS.getResponses(s.id)).forEach((v) => (v.words || []).forEach((w) => { const k = LS.norm(w); if (k) m.set(k, (m.get(k) || { w, n: 0 })), m.get(k).n++; }));
@@ -65,7 +70,7 @@ async function modPanel() {
       `<div class="mrow"><span>${LS.esc(q.t)}</span><button class="btn small mbtn ${has(q.id, "answered") ? "on" : ""}" data-i="${q.id}" data-k="answered">${has(q.id, "answered") ? "رجّعه" : "اتجاوب"}</button>
        <button class="btn small mbtn ${has(q.id, "hide") ? "on" : ""}" data-i="${q.id}" data-k="hide">${has(q.id, "hide") ? "إظهار" : "إخفاء"}</button></div>`);
   }
-  el.innerHTML = `<div class="n">${s.type === "tap" ? "الإجابة" : s.type === "cloud" ? "الكلمات" : "الأسئلة"}</div>${rows.join("") || `<div class="notes">لسه مفيش حاجة.</div>`}`;
+  el.innerHTML = `<div class="n">${s.type === "tap" || answerable ? "الإجابة" : s.type === "cloud" ? "الكلمات" : "الأسئلة"}</div>${rows.join("") || `<div class="notes">لسه مفيش حاجة.</div>`}`;
   el.querySelectorAll(".mbtn").forEach((b) => b.onclick = async () => { await LS.moderate(s.id, b.dataset.i, b.dataset.k, !b.classList.contains("on")); modPanel(); });
 }
 

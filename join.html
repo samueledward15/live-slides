@@ -25,7 +25,14 @@ const W = {
   poll: (s) => {
     root.innerHTML = `<div class="p-title">${s.question}</div>${s.hint ? `<div class="p-sub">${s.hint}</div>` : ""}
       <div class="opts">${s.options.map((o, i) => `<button class="opt ${mine[s.id] === i ? "sel" : ""}" data-i="${i}">${LS.esc(o)}</button>`).join("")}</div>
-      <div class="ok" id="ok">${mine[s.id] !== undefined ? "✓ صوتك اتسجل، وتقدر تغيّره" : ""}</div>`;
+      <div class="ok" id="ok">${mine[s.id] !== undefined ? "✓ صوتك اتسجل، وتقدر تغيّره" : ""}</div><div class="p-reveal" id="rv"></div>`;
+    // after the presenter reveals the answer: mark the right option and show the note
+    if (s.answer != null) {
+      W._live = async () => { const on = (await LS.getMod(s.id)).some((m) => m.kind === "answered" && m.item === "reveal");
+        root.querySelectorAll(".opt").forEach((x) => x.classList.toggle("right", on && +x.dataset.i === s.answer));
+        const rv = document.getElementById("rv"); if (rv) rv.innerHTML = on ? (s.phoneAnswer || s.answerText || "") : ""; };
+      W._live();
+    }
     root.querySelectorAll(".opt").forEach((b) => b.onclick = async () => {
       const i = +b.dataset.i;
       root.querySelectorAll(".opt").forEach((x) => x.classList.toggle("sel", x === b));
@@ -44,6 +51,8 @@ const W = {
   compare: (s) => { const src = deck.slides.find((x) => x.id === s.from[0]);
     if (!s.ask || !src) return W._passive(s);
     W.poll({ ...src, id: s.from[1], hint: s.hint || "جاوب تاني بعد ما شفت العرض." }); },
+  // A/B: same as a poll, the options are the card labels (or c.phone for a short phone version)
+  ab: (s) => W.poll({ ...s, options: s.cards.map((c) => c.phone || c.label) }),
   // ===== Phase 2 =====
   cloud: (s) => {
     const max = s.max || 3, mineW = (mine[s.id] || []).slice();
@@ -113,6 +122,7 @@ const W = {
   _passive: (s) => {
     root.innerHTML = `<div class="p-title">${s.phoneTitle || s.title || s.question || ""}</div>
       <div class="p-sub">${s.phoneText || "تابع الشاشة… أول ما يجي سؤال هيظهرلك هنا."}</div>
+      ${s.phoneLink ? `<a class="opt send p-link" href="${LS.esc(s.phoneLink.url)}" target="_blank" rel="noopener">${LS.esc(s.phoneLink.label)}</a>` : ""}
       ${s.image && s.showImageOnPhone !== false ? `<img class="p-img" src="${s.image}" alt="">` : ""}
       <div class="wait"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
   },
@@ -123,7 +133,7 @@ function show(i) {
   cur = i; const s = deck.slides[i];
   document.getElementById("pos").textContent = `${LS.ar(i + 1)} / ${LS.ar(deck.slides.length)}`;
   W._live = null; (W[s.type] && !s.type.startsWith("_") ? W[s.type] : W._passive)(s);
-  if (navigator.vibrate && (["poll", "cloud", "tap", "scale", "qa"].includes(s.type) || (s.type === "compare" && s.ask))) navigator.vibrate(30);
+  if (navigator.vibrate && (["poll", "cloud", "tap", "scale", "qa", "ab"].includes(s.type) || (s.type === "compare" && s.ask))) navigator.vibrate(30);
 }
 
 (async () => {

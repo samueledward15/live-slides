@@ -132,6 +132,7 @@ a{color:var(--gold2)}
 .cl-form,.qa-form{display:flex;gap:10px;margin-top:18px}.qa-form{flex-direction:column}
 .cl-form input,.qa-form textarea{flex:1;font:inherit;font-size:18px;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--ink)}
 .opt.send{width:auto;text-align:center;font-weight:700}
+.cl-form input{min-width:0}.cl-form .opt.send{flex:none}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--line)}
 .chip button{border:none;background:none;font-size:18px;cursor:pointer;color:inherit}
 .tap-phone{position:relative;margin-top:16px;line-height:0;cursor:crosshair}.tap-phone img{width:100%}
@@ -163,6 +164,36 @@ a{color:var(--gold2)}
 .phone .p-obj img.p-img{margin:0;height:auto;width:auto;max-height:36vh;max-width:100%;object-fit:contain}
 .phone .tap-phone{display:block;width:fit-content;max-width:100%;margin:16px auto 0}
 .phone .tap-phone img{display:block;width:auto;max-width:100%;max-height:46vh}
+
+/* ---------- PHASE 3 (generic layout; themes restyle) ---------- */
+/* answer reveal on poll / ab */
+.bar,.abc{transition:opacity .4s}
+.bar.dim,.abc.dim{opacity:.35}
+.bar.right .num,.abc.right b{color:var(--good)}
+.reveal{min-height:1px;font-size:28px;line-height:1.6;margin-top:20px;opacity:0;transition:opacity .5s}
+.reveal.on{opacity:1}
+/* A/B */
+.ab{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px}
+.abc{border:1px solid var(--line);padding:26px 30px;display:flex;flex-direction:column;gap:14px}
+.abl{font-weight:700;font-size:26px;color:var(--gold)}
+.abt{font-size:26px;line-height:1.7;flex:1}
+.abm{display:grid;grid-template-columns:1fr 100px;gap:16px;align-items:center}.abm .track{height:30px}.abm b{font-size:34px;text-align:left}
+/* cards */
+.cards{display:grid;gap:30px;margin-top:40px}.cards.n2{grid-template-columns:repeat(2,1fr)}.cards.n3{grid-template-columns:repeat(3,1fr)}
+.cards.n4{grid-template-columns:repeat(4,1fr)}.cards.n5{grid-template-columns:repeat(5,1fr)}
+.card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+.card .niche{width:120px;height:140px;display:grid;place-items:center}.card .niche img{width:64px;height:64px}
+.card .ct{font-weight:700;font-size:30px}.card .cx{font-size:22px;line-height:1.6;color:var(--muted)}
+.cardqr{position:absolute;left:70px;bottom:60px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cardqr>div{background:#fff;padding:8px}.cardqr img,.cardqr canvas{display:block}
+/* hero */
+.lay-hero{display:grid;grid-template-columns:1fr 520px;gap:80px;align-items:center;height:100%}
+.hero-side{display:flex;flex-direction:column;align-items:center;text-align:center}
+.hero-niche .big{font-size:120px;line-height:1}.verse{font-family:var(--display);font-size:30px;line-height:1.8;margin-top:26px}
+/* phone */
+.opt.right{border-color:var(--good);box-shadow:inset -5px 0 0 var(--good)}
+.p-reveal{margin-top:16px;font-size:16px;line-height:1.7}
+.p-link{display:block;margin-top:20px;text-decoration:none;text-align:center}
 
 /* deck-wide "hide pins" from the remote */
 body.no-pins .hot{display:none!important}

@@ -22,7 +22,9 @@ let deck, cur = -1;
 const fit = () => { const s = Math.min(innerWidth / 1600, innerHeight / 900); stage.style.transform = `translate(-50%,-50%) scale(${s})`; };
 addEventListener("resize", fit); fit();
 
-const qr = (el, size) => { el.innerHTML = ""; new QRCode(el, { text: LS.joinUrl(), width: size, height: size, correctLevel: QRCode.CorrectLevel.M }); };
+// url (optional): any other link, e.g. an app to open; default = this session's join page
+const qr = (el, size, url) => { el.innerHTML = ""; new QRCode(el, { text: url || LS.joinUrl(), width: size, height: size, correctLevel: QRCode.CorrectLevel.M }); };
+const ico = (name) => `/themes/${deck.theme}/el/${LS.esc(name)}.svg`;
 
 // ---- slide renderers (one per type)
 // small helpers shared by the layouts
@@ -78,7 +80,7 @@ const R = {
            <div><img src="${s.image}" alt=""><div class="cap">${LS.esc(s.caption || "")}</div></div></div>`
       : `${K(s)}<div class="title">${s.title}</div>${B(s)}`,
   join: (s) => `<div class="join"><div>${K(s.kicker ? s : { kicker: "شارك معانا" })}<div class="title">${s.title}</div><div class="rule"></div>
-                 <div class="subtitle">${s.subtitle || "امسح الكود بكاميرا الموبايل"}</div><div class="url">${LS.joinUrl().replace(/^https?:\/\//, "")}</div></div>
+                 <div class="subtitle">${s.subtitle || "امسح الكود بكاميرا الموبايل"}</div><div class="url">${(s.url || LS.joinUrl()).replace(/^https?:\/\//, "")}</div></div>
                  <div class="qr" id="bigqr"></div></div>`,
   // Museum object: photo with numbered look-points + catalogue label
   object: (s) => {
@@ -119,14 +121,32 @@ const R = {
   // Q&A: audience questions sorted by votes; answered ones drop to the bottom
   qa: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "أسئلتكم" })}<div class="q">${s.title || "اسأل من موبايلك"}</div>
               <div class="qa" id="qa"></div><div class="total" id="tot"></div>`,
+  // poll: optional s.answer (index) + s.answerText, shown when the remote presses "اكشف الإجابة"
   poll: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "تصويت" })}<div class="q">${s.question}</div>
-                <div class="bars">${s.options.map((o, i) => `<div class="bar"><div>${LS.esc(o)}</div><div class="track"><div class="fill" id="f${i}"></div></div><div class="num" id="n${i}">٠</div></div>`).join("")}</div>
-                <div class="total" id="tot"></div>`,
+                <div class="bars">${s.options.map((o, i) => `<div class="bar" id="b${i}"><div>${LS.esc(o)}</div><div class="track"><div class="fill" id="f${i}"></div></div><div class="num" id="n${i}">٠</div></div>`).join("")}</div>
+                <div class="total" id="tot"></div>${s.answer != null ? `<div class="reveal" id="reveal"></div>` : ""}`,
+  // ===== Phase 3 =====
+  // A/B: two (or three) text cards side by side, each with its share of the votes; optional answer reveal like poll
+  ab: (s) => `<div class="miniqr" id="miniqr"></div>${K(s.kicker ? s : { kicker: "صوّت" })}<div class="q">${s.question}</div>
+      <div class="ab">${s.cards.map((c, i) => `<div class="abc" id="b${i}"><div class="abl">${LS.esc(c.label)}</div><div class="abt">${c.text}</div>
+        <div class="abm"><div class="track"><div class="fill" id="f${i}"></div></div><b id="n${i}">٠٪</b></div></div>`).join("")}</div>
+      <div class="total" id="tot"></div><div class="reveal" id="reveal"></div>`,
+  // Cards: 2–5 items [{icon | num, title, text, hl}] in arched niches; optional s.qr = {url, label} for a small QR
+  cards: (s) => `${HEAD(s)}<div class="cards n${s.items.length}">${s.items.map((c, i) => `<div class="card${c.hl ? " hl" : ""}" style="--i:${i}">
+        <div class="niche">${c.num != null ? `<b>${LS.ar(c.num)}</b>` : `<img src="${ico(c.icon)}" alt="">`}</div>
+        <div class="ct">${c.title}</div>${c.hl && c.hl !== true ? `<div class="hlb">${c.hl}</div>` : ""}${c.text ? `<div class="cx">${c.text}</div>` : ""}</div>`).join("")}</div>
+      ${s.qr ? `<div class="cardqr"><div id="cardqr"></div><span>${s.qr.label || ""}</span></div>` : ""}`,
+  // Hero: idea on one side; a big word (e.g. a name) in an arched niche with a verse on the other
+  hero: (s) => `<div class="lay-hero"><div>${HEAD(s)}${B(s)}</div>
+      <div class="hero-side"><div class="hero-niche"><div class="big">${s.big}</div>${s.bigSub ? `<div class="bigsub">${s.bigSub}</div>` : ""}</div>
+      ${s.verse ? `<blockquote class="verse">«${s.verse}»</blockquote>${s.ref ? `<div class="ref">${s.ref}</div>` : ""}` : ""}</div></div>`,
 };
 
 const mini = (label) => { const m = document.getElementById("miniqr"); if (!m) return; qr(m, 120); m.insertAdjacentHTML("beforeend", `<span>${label}</span>`); };
 const after = {
-  join: () => qr(document.getElementById("bigqr"), 380),
+  join: (s) => qr(document.getElementById("bigqr"), 380, s.url),
+  ab: (s) => { mini("صوّت"); refresh(s); },
+  cards: (s) => { const q = document.getElementById("cardqr"); if (q && s.qr) qr(q, 150, s.qr.url); },
   cloud: (s) => { mini("اكتب"); refresh(s); },
   tap: (s) => { mini("دوس"); refresh(s); },
   scale: (s) => { mini("قيّم"); refresh(s); },
@@ -191,6 +211,23 @@ const R2 = {
     document.getElementById("tot").textContent = `عدد الأسئلة: ${LS.ar(qs.length)}`;
   },
 };
+// A/B: percentage of votes per card
+R2.ab = async (s) => {
+  const c = LS.tally(await LS.getResponses(s.id), s.cards.length), total = c.reduce((a, b) => a + b, 0);
+  c.forEach((v, i) => { const p = total ? Math.round(v / total * 100) : 0;
+    const f = document.getElementById("f" + i); if (f) f.style.width = p + "%";
+    const n = document.getElementById("n" + i); if (n) n.textContent = LS.ar(p) + "٪"; });
+  const t = document.getElementById("tot"); if (t) t.textContent = `عدد المشاركين: ${LS.ar(total)}`;
+  await showAnswer(s);
+};
+// answer reveal (poll / ab with s.answer): the remote sets mod item "reveal"
+async function showAnswer(s) {
+  if (s.answer == null) return;
+  const on = (await LS.getMod(s.id)).some((m) => m.kind === "answered" && m.item === "reveal");
+  const n = (s.options || s.cards).length;
+  for (let i = 0; i < n; i++) { const b = document.getElementById("b" + i); if (b) { b.classList.toggle("right", on && i === s.answer); b.classList.toggle("dim", on && i !== s.answer); } }
+  const r = document.getElementById("reveal"); if (r) { r.innerHTML = on ? (s.answerText || "") : ""; r.classList.toggle("on", on); }
+}
 const refresh = (s) => R2[s.type] && R2[s.type](s).catch(() => {});
 
 async function refreshPoll(s) {
@@ -202,6 +239,7 @@ async function refreshPoll(s) {
     if (n) n.textContent = s.showPercent && total ? LS.ar(Math.round(v / total * 100)) + "٪" : LS.ar(v);
   });
   const t = document.getElementById("tot"); if (t) t.textContent = `عدد المشاركين: ${LS.ar(total)}`;
+  await showAnswer(s).catch(() => {});
 }
 
 function show(i) {
